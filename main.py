@@ -3,8 +3,6 @@ from discord.ext import commands
 import json
 import os
 
-
-
 # Get variables.json
 with open("variables.json", "r") as config:
     data = json.load(config)
@@ -14,11 +12,15 @@ with open("variables.json", "r") as config:
     id_canal_bots = data["id_canal_bots"]
 
 intents = discord.Intents.default()
-intents.members = True 
-
+intents.messages = True  # Mensajes
+intents.guilds = True  # Servidores
+intents.members = True  # Miembros
+intents.bans = True  # Baneos
+intents.emojis = True  # Emojis
+intents.reactions = True  # Reacciones
+intents.voice_states = True 
 
 bot = commands.Bot(command_prefix='>', intents = intents, description="Bot de Korea")
-
 
 @bot.event
 async def on_ready():
@@ -49,7 +51,7 @@ async def on_member_join(member):
 
     # Envía un mensaje de bienvenida al canal
     if welcome_channel:
-        await welcome_channel.send(f'Bienvenido {member.mention} al servidor. ¡Esperamos que disfrutes tu estancia, SUBNORMAL!')
+        await welcome_channel.send(f'{member.mention} entró al servidor, ya me joderia.')
 
 
 # Reemplaza 'TOKEN' con tu token de bot de Discord
