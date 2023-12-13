@@ -16,6 +16,7 @@
 ## Funcionalidades a futuro
 - Reproducir audio de videos de youtube
 - Que pueda usar sonidos del panel
+- Hacer que pueda bloquear y mutear a gente
 - Hacer una whitelist de personas que lo pueden usar
     - Por roles de discord
-    - Por código
+    - Por código (Si hacemos la de arriba va a ser necesaria)
