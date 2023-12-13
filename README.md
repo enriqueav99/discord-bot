@@ -1,10 +1,10 @@
 # Bot koreano
 
 >[!IMPORTANT]
-> Para que funcione el codigo necesitas tener tu archivo pyvenv.cfg configurado con el token que necesitaspara conectarte a la api del bot en discord
+> Para que funcione el codigo necesitas tener tu archivo variables.json en la raiz del proyecto configurado con el token que necesitas para conectarte a la api del bot en discord
 
 >[!IMPORTANT]
-> De momento no he subido el archivo de configuración hasta que no se hable si queremos subir el venv, de momento no
+> De momento no he subido el archivo de configuración hasta que no se hable como hacer lo de las variables de entorno con vosotros
 
 >[!IMPORTANT]
 > Tienes que configurarlo para que el archivo lea de una variable de entorno de tu SSOO, si lo necesitas pidemelo

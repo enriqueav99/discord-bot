@@ -1,3 +1,2 @@
-# Descomentar si sacamos el pyvenv.cfg del venv
-# pyvenv.cfg
+variables.json
 venv/
