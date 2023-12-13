@@ -8,27 +8,33 @@ with open("configuration.json", "r") as config:
     token = data["token"]
     prefix = data["prefix"]
 
+intents = discord.Intents.default()
+intents.members = True 
+
+
 bot = commands.Bot(prefix, intents = intents)
 
-# Load cogs
-initial_extensions = [
-    "Cogs.help",
-    "Cogs.ping"
-]
-
-print(initial_extensions)
-
-if __name__ == '__main__':
-    for extension in initial_extensions:
-        try:
-            bot.load_extension(extension)
-        except Exception as e:
-            print(f"Failed to load extension {extension}")
 
 @bot.event
 async def on_ready():
-    print(f"We have logged in as {bot.user}")
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name =f"{bot.command_prefix}help"))
-    print(discord.__version__)
+    print(f'Conectado como {bot.user}')
 
-bot.run(token)
+@bot.command()
+async def saludar(ctx):
+    general_channel = ctx.guild.get_channel(ctx.guild.id)
+    await general_channel.send('Hola')
+
+
+@bot.event
+async def on_member_join(member):
+    # Obtén el canal de bienvenida del servidor
+    # Reemplaza CHANNEL_ID con el ID del canal donde quieres enviar el mensaje de bienvenida
+    welcome_channel = bot.get_channel(CHANNEL_ID)
+
+    # Envía un mensaje de bienvenida al canal
+    if welcome_channel:
+        await welcome_channel.send(f'Bienvenido {member.mention} al servidor. ¡Esperamos que disfrutes tu estancia, SUBNORMAL!')
+
+
+# Reemplaza 'TOKEN' con tu token de bot de Discord
+bot.run('TOKEN')

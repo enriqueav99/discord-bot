@@ -9,6 +9,9 @@
 >[!IMPORTANT]
 > Tienes que configurarlo para que el archivo lea de una variable de entorno de tu SSOO, si lo necesitas pidemelo
 
+# Tareas
+- Organizar el codigo por events y commands
+
 ## Funcionalidades básicas a implementar
 - Hacer que salude
 - Personalizar comandos
