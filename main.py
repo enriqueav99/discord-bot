@@ -5,29 +5,41 @@ import os
 
 
 
-# Get configuration.json
+# Get variables.json
 with open("variables.json", "r") as config:
     data = json.load(config)
     token = data["token"]
     prefix = data["prefix"]
-    id_canal_principal = data["id_canal_principal"]
+    id_canal_principal = data["id_canal_principal"],
+    id_canal_bots = data["id_canal_bots"]
 
 intents = discord.Intents.default()
 intents.members = True 
 
 
-bot = commands.Bot(prefix, intents = intents)
+bot = commands.Bot(command_prefix='>', intents = intents, description="Bot de Korea")
 
 
 @bot.event
 async def on_ready():
+    general_channel = bot.get_channel(id_canal_bots)
+    await general_channel.send(f'Conectado como {bot.user}, iniciando prueba')
     print(f'Conectado como {bot.user}')
 
 @bot.command()
 async def saludar(ctx):
-    general_channel = ctx.guild.get_channel(ctx.guild.id)
-    await general_channel.send('Hola, que viva la saltisima trinidad, aqui el admin abuse no existe')
+    await ctx.send('Hola, que viva la saltisima trinidad, aqui el admin abuse no existe')
 
+@bot.command()
+async def ping(ctx):
+    print('pong')
+    await ctx.send('pong')
+    
+@bot.command()
+async def info(ctx):
+    embed=discord.Embed(title="title", description="description", color=0xff0000)
+    embed.add_field(name="field", value="value", inline=False)
+    await ctx.send(embed=embed)
 
 @bot.event
 async def on_member_join(member):
