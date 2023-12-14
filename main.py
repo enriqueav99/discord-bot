@@ -107,7 +107,7 @@ async def rep_sonido(ctx):
 
     
 @bot.command()
-async def sonido(ctx):
+async def rr(ctx):
     await rep_sonido(ctx)
     
 # Reemplaza 'TOKEN' con tu token de bot de Discord
