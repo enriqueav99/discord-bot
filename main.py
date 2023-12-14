@@ -4,6 +4,7 @@ import json
 import os
 import youtube_dl
 from src.logger import start_logger
+from src.leer_csv import comprobar_whitelist
 start_logger()
 
 
@@ -35,15 +36,6 @@ async def on_member_join(member):
     if welcome_channel:
         await welcome_channel.send(f'{member.mention} entró al servidor, ya me joderia.')
 
-@bot.event
-async def on_disconnect():
-    canal_texto_id = id_canal_bots  # ID del canal donde enviar el mensaje
-    canal_texto = bot.get_channel(canal_texto_id)
-    if canal_texto:
-        await canal_texto.send('¡El bot se ha desconectado!')
-    else:
-        print('No se pudo encontrar el canal para enviar el mensaje de despedida.')
-
 
 @bot.command()
 async def saludar(ctx):
@@ -74,39 +66,6 @@ async def info(ctx):
 
     await ctx.send(embed=embed)
 
-
-# Función para reproducir audio desde YouTube
-async def reproducir_audio(ctx, url):
-    canal_voz = ctx.author.voice.channel
-    if canal_voz:
-        try:
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'quiet': True,
-            }
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                url2 = info['formats'][0]['url']
-                canal_voz = await canal_voz.connect()
-                canal_voz.play(discord.FFmpegPCMAudio(url2, **ydl_opts))
-                await ctx.send(f'Reproduciendo: {info["title"]} en {canal_voz}')
-        except Exception as e:
-            await ctx.send("Ocurrió un error al reproducir el audio.")
-            print(e)
-    else:
-        await ctx.send("Debes estar en un canal de voz para usar este comando.")
-
-# Comando para reproducir una canción de YouTube
-@bot.command()
-async def reproducir(ctx, *, url: str):
-    await reproducir_audio(ctx, url)
-
-# Manejador de errores para el comando de reproducción de canciones
-@reproducir.error
-async def reproducir_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send('Por favor, proporciona un enlace de YouTube.')
-
 @bot.command()
 async def join(ctx):
     canal_voz = ctx.author.voice.channel
@@ -130,5 +89,26 @@ async def leave(ctx):
     else:
         await ctx.send('No estoy en un canal de voz, no me molestes o llamo a Tomás.')
 
+async def rep_sonido(ctx):
+    if comprobar_whitelist(ctx.author.name):
+        canal_voz = bot.get_channel(265992324876730378)
+        voice_client = ctx.guild.voice_client
+        if voice_client and voice_client.is_connected():
+            try:
+                source = discord.FFmpegPCMAudio('sonidos/rickroll.mp3')  # Reemplaza con la ruta de tu archivo de audio
+                voice_client.play(source)
+                print("Sonido reproducido con éxito.")
+            except Exception as e:
+                await ctx.send(f"Ocurrió un error al reproducir el sonido: {e}")
+        else:
+            await ctx.send("Debes estar en un canal de voz para usar este comando.")
+    else:
+        await ctx.send("Lo siento, no tienes permiso para usar este comando.")
+
+    
+@bot.command()
+async def sonido(ctx):
+    await rep_sonido(ctx)
+    
 # Reemplaza 'TOKEN' con tu token de bot de Discord
 bot.run(token)
