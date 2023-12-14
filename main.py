@@ -2,15 +2,10 @@ import discord
 from discord.ext import commands
 import json
 import os
-
-import logging
-
-# Guardar los logs en un archivo para su estudio
-logger = logging.getLogger('discord')
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
+import youtube_dl
+from src.logger import start_logger
+from src.leer_csv import comprobar_whitelist
+start_logger()
 
 
 # Get variables.json
@@ -28,8 +23,19 @@ bot = commands.Bot(command_prefix='>', intents = intents, description="Bot de Ko
 @bot.event
 async def on_ready():
     general_channel = bot.get_channel(id_canal_bots)
-    await general_channel.send(f'Conectado como {bot.user}, iniciando prueba')
+    await general_channel.send(f'Conectado como {bot.user}, listo para ser utilizado, como ella hizo conmingo')
     print(f'Conectado como {bot.user}')
+
+@bot.event
+async def on_member_join(member):
+    # Obtén el canal de bienvenida del servidor
+    # Reemplaza CHANNEL_ID con el ID del canal donde quieres enviar el mensaje de bienvenida
+    welcome_channel = bot.get_channel(id_canal_principal)
+
+    # Envía un mensaje de bienvenida al canal
+    if welcome_channel:
+        await welcome_channel.send(f'{member.mention} entró al servidor, ya me joderia.')
+
 
 @bot.command()
 async def saludar(ctx):
@@ -60,16 +66,49 @@ async def info(ctx):
 
     await ctx.send(embed=embed)
 
-@bot.event
-async def on_member_join(member):
-    # Obtén el canal de bienvenida del servidor
-    # Reemplaza CHANNEL_ID con el ID del canal donde quieres enviar el mensaje de bienvenida
-    welcome_channel = bot.get_channel(id_canal_principal)
+@bot.command()
+async def join(ctx):
+    canal_voz = ctx.author.voice.channel
+    if canal_voz:
+        try:
+            await canal_voz.connect()
+            await ctx.send(f"Me he unido a '{canal_voz}'")
+        except discord.ClientException:
+            await ctx.send("Ya estoy en un canal de voz.")
+        except Exception as e:
+            await ctx.send(f"Ocurrió un error: {e}")
+    else:
+        await ctx.send("Debes estar en un canal de voz para usar este comando.")
 
-    # Envía un mensaje de bienvenida al canal
-    if welcome_channel:
-        await welcome_channel.send(f'{member.mention} entró al servidor, ya me joderia.')
+@bot.command()
+async def leave(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client:
+        await voice_client.disconnect()
+        await ctx.send('Me he desconectado del canal de voz.')
+    else:
+        await ctx.send('No estoy en un canal de voz, no me molestes o llamo a Tomás.')
 
+async def rep_sonido(ctx):
+    if comprobar_whitelist(ctx.author.name):
+        canal_voz = bot.get_channel(265992324876730378)
+        voice_client = ctx.guild.voice_client
+        if voice_client and voice_client.is_connected():
+            try:
+                source = discord.FFmpegPCMAudio('sonidos/rickroll.mp3')  # Reemplaza con la ruta de tu archivo de audio
+                voice_client.play(source)
+                print("Sonido reproducido con éxito.")
+            except Exception as e:
+                await ctx.send(f"Ocurrió un error al reproducir el sonido: {e}")
+        else:
+            await ctx.send("Debes estar en un canal de voz para usar este comando.")
+    else:
+        await ctx.send("Lo siento, no tienes permiso para usar este comando.")
 
+    
+@bot.command()
+async def rr(ctx):
+    await rep_sonido(ctx)
+    
 # Reemplaza 'TOKEN' con tu token de bot de Discord
 bot.run(token)
