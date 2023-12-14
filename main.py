@@ -21,14 +21,7 @@ with open("variables.json", "r") as config:
     id_canal_principal = data["id_canal_principal"],
     id_canal_bots = data["id_canal_bots"]
 
-intents = discord.Intents.default()
-intents.messages = True  # Mensajes
-intents.guilds = True  # Servidores
-intents.members = True  # Miembros
-intents.bans = True  # Baneos
-intents.emojis = True  # Emojis
-intents.reactions = True  # Reacciones
-intents.voice_states = True 
+intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='>', intents = intents, description="Bot de Korea")
 
@@ -49,8 +42,22 @@ async def ping(ctx):
     
 @bot.command()
 async def info(ctx):
-    embed=discord.Embed(title="title", description="description", color=0xff0000)
-    embed.add_field(name="field", value="value", inline=False)
+    embed = discord.Embed(
+        title="Bot de Korea",
+        description="¡Bienvenido al Bot de Korea! Aquí tienes información sobre este bot.",
+        color=0xff0000
+    )
+    embed.add_field(name="Autor", value="enriqueav99", inline=False)
+    embed.add_field(name="Versión", value="0.1.0", inline=False)
+    embed.add_field(name="Descripción", value="Bot koreano para que por fin alguien ponga orden aquí, algunas funciones tendrán whitelist.", inline=False)
+    embed.add_field(name="Comandos", value="Lista de comandos disponibles:", inline=False)
+    embed.add_field(name=">saludar", value="Saluda al bot.", inline=True)
+    embed.add_field(name=">ping", value="Obtener respuesta 'pong'.", inline=True)
+    embed.add_field(name=">info", value="Muestra este mensaje de información.", inline=True)
+    # Añade más campos según los comandos que tengas en tu bot
+
+    embed.set_footer(text="Usa el bot con responsabilidad")
+
     await ctx.send(embed=embed)
 
 @bot.event
