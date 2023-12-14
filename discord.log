@@ -1,3 +1,7 @@
 2023-12-14 22:55:04,225:DEBUG:discord.client: on_ready has successfully been registered as an event
 2023-12-14 22:55:04,225:DEBUG:discord.client: on_member_join has successfully been registered as an event
 2023-12-14 22:55:04,226:INFO:discord.client: logging in using static token
+2023-12-14 22:55:05,334:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 1b1d9e511ade962f9d602d74f02123f0).
+2023-12-14 23:06:01,655:INFO:discord.voice_client: Connecting to voice...
+2023-12-14 23:06:01,656:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
+2023-12-14 23:06:01,894:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid3087.discord.media
