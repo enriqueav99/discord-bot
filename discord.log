@@ -1,13 +1,13 @@
-2023-12-15 00:20:52,033:DEBUG:discord.client: on_ready has successfully been registered as an event
-2023-12-15 00:20:52,034:DEBUG:discord.client: on_member_join has successfully been registered as an event
-2023-12-15 00:20:52,035:INFO:discord.client: logging in using static token
-2023-12-15 00:20:53,013:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 02772192fd9a881119993a9cbf998238).
-2023-12-15 00:21:01,267:INFO:discord.voice_client: Connecting to voice...
-2023-12-15 00:21:01,267:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
-2023-12-15 00:21:01,515:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid3087.discord.media
-2023-12-15 00:21:24,932:INFO:discord.player: ffmpeg process 18968 has not terminated. Waiting to terminate...
-2023-12-15 00:21:24,936:INFO:discord.player: ffmpeg process 18968 should have terminated with a return code of 1.
-2023-12-15 00:21:25,160:INFO:discord.player: ffmpeg process 11432 successfully terminated with return code of 0.
-2023-12-15 00:21:49,519:INFO:discord.player: ffmpeg process 864 successfully terminated with return code of 0.
-2023-12-15 00:22:02,549:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)
-2023-12-15 00:22:02,550:INFO:discord.player: ffmpeg process 12988 has not terminated. Waiting to terminate...
+2023-12-17 12:47:40,524:DEBUG:discord.client: on_ready has successfully been registered as an event
+2023-12-17 12:47:40,524:DEBUG:discord.client: on_member_join has successfully been registered as an event
+2023-12-17 12:47:40,527:INFO:discord.client: logging in using static token
+2023-12-17 12:47:41,586:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: cf9ddb3d3c489b29c87feb854617af37).
+2023-12-17 12:47:44,729:INFO:discord.voice_client: Connecting to voice...
+2023-12-17 12:47:44,729:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
+2023-12-17 12:47:44,959:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid1575.discord.media
+2023-12-17 12:47:55,046:INFO:discord.voice_client: Disconnecting from voice normally, close code 1000.
+2023-12-17 12:47:55,070:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)
+2023-12-17 12:48:00,399:INFO:discord.voice_client: Connecting to voice...
+2023-12-17 12:48:00,399:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
+2023-12-17 12:48:00,630:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid1575.discord.media
+2023-12-17 12:48:17,485:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)

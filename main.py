@@ -18,7 +18,7 @@ with open("variables.json", "r") as config:
 
 intents = discord.Intents.all()
 
-bot = commands.Bot(command_prefix='>', intents = intents, description="Bot de Korea")
+bot = commands.Bot(command_prefix=prefix, intents = intents, description="Bot de Korea")
 
 @bot.event
 async def on_ready():
@@ -101,7 +101,7 @@ async def rep_sonido(ctx):
             except Exception as e:
                 await ctx.send(f"Ocurrió un error al reproducir el sonido: {e}")
         else:
-            await ctx.send("Debes estar en un canal de voz para usar este comando.")
+            await ctx.send("Debo de estar en un canal de voz para usar este comando.")
     else:
         await ctx.send("Lo siento, no tienes permiso para usar este comando.")
 
@@ -110,5 +110,17 @@ async def rep_sonido(ctx):
 async def rr(ctx):
     await rep_sonido(ctx)
     
+@bot.command
+async def ir(ctx):
+    file_path = 'img/ric.jpg'  # Reemplaza con la ruta de tu imagen
+    
+    # Intentar abrir la imagen
+    try:
+        with open(file_path, 'rb') as file:
+            picture = discord.File(file)
+            await message.channel.send(file=picture)
+    except FileNotFoundError:
+        await message.channel.send('No se pudo encontrar la imagen.')
+
 # Reemplaza 'TOKEN' con tu token de bot de Discord
 bot.run(token)
