@@ -5,7 +5,6 @@ def leer_strings_de_fila():
         with open('whitelist.csv', 'r', newline='', encoding='utf-8') as file:
             reader = csv.reader(file, delimiter='%')
             first_row = next(reader, None)  # Leer la primera fila
-            print(first_row)
             return first_row if first_row is not None else []  # Devolver la primera fila como un array o una lista vacía si no hay datos
 
     except FileNotFoundError:

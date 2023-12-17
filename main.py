@@ -5,6 +5,7 @@ import os
 import youtube_dl
 from src.logger import start_logger
 from src.leer_csv import comprobar_whitelist
+
 start_logger()
 
 
@@ -110,17 +111,17 @@ async def rep_sonido(ctx):
 async def rr(ctx):
     await rep_sonido(ctx)
     
-@bot.command
-async def ir(ctx):
+@bot.command()
+async def rick(ctx):
     file_path = 'img/ric.jpg'  # Reemplaza con la ruta de tu imagen
-    
+    general_channel = bot.get_channel(id_canal_bots)
     # Intentar abrir la imagen
     try:
         with open(file_path, 'rb') as file:
             picture = discord.File(file)
-            await message.channel.send(file=picture)
+            await general_channel.send(file=picture)
     except FileNotFoundError:
-        await message.channel.send('No se pudo encontrar la imagen.')
+        await general_channel.send('No se pudo encontrar la imagen.')
 
 # Reemplaza 'TOKEN' con tu token de bot de Discord
 bot.run(token)
