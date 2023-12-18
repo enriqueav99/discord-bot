@@ -1,10 +1,13 @@
+from random import random
+
 import discord
 from discord.ext import commands
 import json
 import os
-import youtube_dl
+import requests
 from src.logger import start_logger
 from src.leer_csv import comprobar_whitelist
+import random
 
 start_logger()
 
@@ -86,7 +89,6 @@ async def leave(ctx):
     voice_client = ctx.guild.voice_client
     if voice_client:
         await voice_client.disconnect()
-        await ctx.send('Me he desconectado del canal de voz.')
     else:
         await ctx.send('No estoy en un canal de voz, no me molestes o llamo a Tomás.')
 
@@ -122,6 +124,33 @@ async def rick(ctx):
             await general_channel.send(file=picture)
     except FileNotFoundError:
         await general_channel.send('No se pudo encontrar la imagen.')
+
+@bot.command()
+async def adivina(ctx):
+    poke_api_url = "https://pokeapi.co/api/v2/pokemon/"
+    pokemon_id = random.randint(1, 898)
+    pokemon_data = requests.get(f"{poke_api_url}{pokemon_id}").json()
+    pokemon_name = pokemon_data['name'].capitalize()
+    pokemon_image_url = pokemon_data['sprites']['other']['dream_world']['front_default']
+
+    await ctx.send("Adivina este Pokémon:")
+    await ctx.send(f"Nombre: {pokemon_name}")
+    await ctx.send(f"Imagen: {pokemon_image_url}")
+
+    def check(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
+
+    try:
+        response = await bot.wait_for('message', check=check, timeout=30)
+
+        if response.content.lower() == pokemon_name.lower():
+            await ctx.send(f"¡Correcto, {ctx.author}! ¡Has adivinado el Pokémon!")
+        else:
+            await ctx.send(f"¡Incorrecto, {ctx.author}! El Pokémon correcto era {pokemon_name}.")
+    except asyncio.TimeoutError:
+        await ctx.send(f"Se acabó el tiempo. El Pokémon era {pokemon_name}.")
+
+
 
 # Reemplaza 'TOKEN' con tu token de bot de Discord
 bot.run(token)
