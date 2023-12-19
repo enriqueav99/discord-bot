@@ -8,7 +8,7 @@ import requests
 from src.logger import start_logger
 from src.leer_csv import comprobar_whitelist
 import random
-
+from src.poke_func import obtener_silueta
 start_logger()
 
 
@@ -28,7 +28,6 @@ bot = commands.Bot(command_prefix=prefix, intents = intents, description="Bot de
 async def on_ready():
     general_channel = bot.get_channel(id_canal_bots)
     await general_channel.send(f'Conectado como {bot.user}, listo para ser utilizado, como ella hizo conmingo')
-    print(f'Conectado como {bot.user}')
 
 @bot.event
 async def on_member_join(member):
@@ -47,9 +46,8 @@ async def saludar(ctx):
 
 @bot.command()
 async def ping(ctx):
-    print('pong')
     await ctx.send('pong')
-    
+
 @bot.command()
 async def info(ctx):
     embed = discord.Embed(
@@ -58,7 +56,7 @@ async def info(ctx):
         color=0xff0000
     )
     embed.add_field(name="Autor", value="enriqueav99", inline=False)
-    embed.add_field(name="Versión", value="0.1.0", inline=False)
+    embed.add_field(name="Versión", value="0.1.1", inline=False)
     embed.add_field(name="Descripción", value="Bot koreano para que por fin alguien ponga orden aquí, algunas funciones tendrán whitelist.", inline=False)
     embed.add_field(name="Comandos", value="Lista de comandos disponibles:", inline=False)
     embed.add_field(name=">saludar", value="Saluda al bot.", inline=True)
@@ -106,7 +104,7 @@ async def rep_sonido(ctx):
         else:
             await ctx.send("Debo de estar en un canal de voz para usar este comando.")
     else:
-        await ctx.send("Lo siento, no tienes permiso para usar este comando.")
+        await ctx.send("Lo siento, te jodes, no tienes permiso para usar este comando.")
 
     
 @bot.command()
@@ -131,12 +129,26 @@ async def adivina(ctx):
     pokemon_id = random.randint(1, 898)
     pokemon_data = requests.get(f"{poke_api_url}{pokemon_id}").json()
     pokemon_name = pokemon_data['name'].capitalize()
-    pokemon_image_url = pokemon_data['sprites']['other']['dream_world']['front_default']
+    pokemon_image_url = pokemon_data['sprites']['front_default']
 
-    await ctx.send("Adivina este Pokémon:")
-    await ctx.send(f"Nombre: {pokemon_name}")
-    await ctx.send(f"Imagen: {pokemon_image_url}")
+    await ctx.send("Adivina este Pokémon, tienes 30 segundos!")
+    #await ctx.send(f"Nombre: {pokemon_name}")
+    
+    response = requests.get(pokemon_image_url)
+    with open("img/pokemon_temp.png", "wb") as file:
+        file.write(response.content)
 
+    # Obtener la silueta de la imagen descargada
+    imagen_silueta = obtener_silueta("img/pokemon_temp.png")
+
+    # Guardar la imagen de la silueta generada
+    imagen_silueta.save("img/silueta_pokemon.png")
+    with open("img/silueta_pokemon.png", 'rb') as file:
+            picture = discord.File(file)
+            await ctx.send(file=picture)
+    
+   
+    
     def check(msg):
         return msg.author == ctx.author and msg.channel == ctx.channel
 
