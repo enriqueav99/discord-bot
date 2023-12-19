@@ -1,3 +1,4 @@
 variables.json
 venv/
 img/*poke*
+src/__pycache__
