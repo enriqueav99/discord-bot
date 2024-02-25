@@ -16,7 +16,7 @@ async def mandar_rick(bot, id):
     except FileNotFoundError:
         await general_channel.send('No se pudo encontrar la imagen.')
         
-async def rep_sonido(ctx, bot):
+async def rep_sonido(ctx):
     if comprobar_whitelist(ctx.author.name):
         voice_client = ctx.guild.voice_client
         if voice_client and voice_client.is_connected():
