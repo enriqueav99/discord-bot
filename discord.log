@@ -1,73 +1,17 @@
-2023-12-19 21:39:20,159:DEBUG:discord.client: on_ready has successfully been registered as an event
-2023-12-19 21:39:20,159:DEBUG:discord.client: on_member_join has successfully been registered as an event
-2023-12-19 21:39:20,160:INFO:discord.client: logging in using static token
-2023-12-19 21:39:21,203:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: f4c4cd812c9badcb216f18655849bd86).
-2023-12-19 21:39:46,680:ERROR:discord.client: Ignoring exception in on_message
+2023-12-20 21:36:04,440:DEBUG:discord.client: on_ready has successfully been registered as an event
+2023-12-20 21:36:04,441:DEBUG:discord.client: on_member_join has successfully been registered as an event
+2023-12-20 21:36:04,442:INFO:discord.client: logging in using static token
+2023-12-20 21:36:05,516:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 9dda58e9b7e52fd7865a3311011591ef).
+2023-12-20 21:36:23,142:INFO:discord.voice_client: Connecting to voice...
+2023-12-20 21:36:23,143:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
+2023-12-20 21:36:23,439:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid9538.discord.media
+2023-12-20 21:36:26,627:INFO:discord.player: ffmpeg process 1784 successfully terminated with return code of 4294967274.
+2023-12-20 21:41:54,250:ERROR:discord.client: Attempting a reconnect in 1.91s
 Traceback (most recent call last):
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\runners.py", line 44, in run
-    return loop.run_until_complete(main)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\base_events.py", line 636, in run_until_complete
-    self.run_forever()
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\windows_events.py", line 321, in run_forever
-    super().run_forever()
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\base_events.py", line 603, in run_forever
-    self._run_once()
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\base_events.py", line 1871, in _run_once
-    event_list = self._selector.select(timeout)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\windows_events.py", line 444, in select
-    self._poll(timeout)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\windows_events.py", line 797, in _poll
-    status = _overlapped.GetQueuedCompletionStatus(self._iocp, ms)
-KeyboardInterrupt
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Enrique\Desktop\discord_bot\discord-bot\src\poke_func.py", line 54, in adivinar_pokemon
-    response = await bot.wait_for('message', check=check, timeout=30)
-  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\asyncio\tasks.py", line 432, in wait_for
-    await waiter
-asyncio.exceptions.CancelledError
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\core.py", line 235, in wrapped
-    ret = await coro(*args, **kwargs)
-  File "C:\Users\Enrique\Desktop\discord_bot\discord-bot\main.py", line 90, in adivina
-    await adivinar_pokemon(ctx, bot)
-  File "C:\Users\Enrique\Desktop\discord_bot\discord-bot\src\poke_func.py", line 60, in adivinar_pokemon
-    except asyncio.TimeoutError:
-NameError: name 'asyncio' is not defined
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\bot.py", line 1350, in invoke
-    await ctx.command.invoke(ctx)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\core.py", line 1029, in invoke
-    await injected(*ctx.args, **ctx.kwargs)  # type: ignore
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\core.py", line 244, in wrapped
-    raise CommandInvokeError(exc) from exc
-discord.ext.commands.errors.CommandInvokeError: Command raised an exception: NameError: name 'asyncio' is not defined
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\client.py", line 441, in _run_event
-    await coro(*args, **kwargs)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\bot.py", line 1395, in on_message
-    await self.process_commands(message)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\bot.py", line 1392, in process_commands
-    await self.invoke(ctx)  # type: ignore
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\bot.py", line 1354, in invoke
-    await ctx.command.dispatch_error(ctx, exc)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\core.py", line 650, in dispatch_error
-    ctx.bot.dispatch('command_error', ctx, error)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\ext\commands\bot.py", line 221, in dispatch
-    super().dispatch(event_name, *args, **kwargs)  # type: ignore
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\client.py", line 499, in dispatch
-    self._schedule_event(coro, method, *args, **kwargs)
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\client.py", line 459, in _schedule_event
-    return self.loop.create_task(wrapped, name=f'discord.py: {event_name}')
-AttributeError: '_MissingSentinel' object has no attribute 'create_task'
+  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\client.py", line 659, in connect
+    await self.ws.poll_event()
+  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\gateway.py", line 646, in poll_event
+    raise ConnectionClosed(self.socket, shard_id=self.shard_id, code=code) from None
+discord.errors.ConnectionClosed: Shard ID None WebSocket closed with 1000
+2023-12-20 21:41:56,486:INFO:discord.gateway: Shard ID None has successfully RESUMED session 9dda58e9b7e52fd7865a3311011591ef.
+2023-12-20 21:56:11,219:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)
