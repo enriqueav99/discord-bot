@@ -1,0 +1,4 @@
+discord
+Pillow
+yt_dlp
+PyNaCl

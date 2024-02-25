@@ -2,3 +2,5 @@ variables.json
 venv/
 img/*poke*
 src/__pycache__
+src/_pycache_/*
+discord.log
