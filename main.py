@@ -10,6 +10,9 @@ from src.leer_csv import comprobar_whitelist
 import random
 from src.poke_func import adivinar_pokemon
 from src.info import definir_info
+import yt_dlp
+import asyncio
+
 start_logger()
 
 
@@ -79,7 +82,7 @@ async def leave(ctx):
  
 @bot.command()
 async def rr(ctx):
-    await rep_sonido(bot, ctx)
+    await rep_sonido(ctx)
     
 @bot.command()
 async def rick(ctx):
@@ -88,6 +91,43 @@ async def rick(ctx):
 @bot.command()
 async def adivina(ctx):
     await adivinar_pokemon(ctx, bot)
+
+@bot.command()
+async def play(ctx, url: str):
+    # Verificar si el usuario está en un canal de voz
+    if ctx.author.voice is None:
+        await ctx.send("¡Debes estar en un canal de voz para usar este comando!")
+        return
+
+    # Obtener el canal de voz del usuario
+    voice_channel = ctx.author.voice.channel
+
+    # Comprobar si el bot ya está en un canal de voz
+    if ctx.voice_client is not None:
+        await ctx.voice_client.move_to(voice_channel)
+    else:
+        # Conectar al canal de voz si el bot no está en ninguno
+        vc = await voice_channel.connect()
+
+    # Descargar el audio usando yt_dlp y reproducirlo en el canal de voz
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        url = info['formats'][0]['url']
+
+        # Reproducir el audio en el canal de voz
+    ctx.voice_client.play(discord.FFmpegPCMAudio(url, executable='ffmpeg'))
+
+    await ctx.send(f'Reproduciendo audio de: {info["title"]}')
+
 
 
 
