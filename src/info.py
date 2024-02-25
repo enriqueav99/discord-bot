@@ -13,6 +13,8 @@ def definir_info():
     embed.add_field(name="<ping", value="Obtener respuesta 'pong'.", inline=True)
     embed.add_field(name="<info", value="Muestra este mensaje de información.", inline=False)
     embed.add_field(name="<adivina", value="Adivina cual es el pokemon de la imagen en 30 segundos.", inline=True)
+    embed.add_field(name="<join", value="El bot se une a la sala en la que estés.", inline=True)
+    embed.add_field(name="<leave", value="El bot se va de la sala.", inline=True)
     # Añade más campos según los comandos que tengas en tu bot
 
     embed.set_footer(text="Usa el bot con responsabilidad")
