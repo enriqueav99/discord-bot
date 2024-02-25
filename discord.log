@@ -1,17 +1,4 @@
-2023-12-20 21:36:04,440:DEBUG:discord.client: on_ready has successfully been registered as an event
-2023-12-20 21:36:04,441:DEBUG:discord.client: on_member_join has successfully been registered as an event
-2023-12-20 21:36:04,442:INFO:discord.client: logging in using static token
-2023-12-20 21:36:05,516:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 9dda58e9b7e52fd7865a3311011591ef).
-2023-12-20 21:36:23,142:INFO:discord.voice_client: Connecting to voice...
-2023-12-20 21:36:23,143:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
-2023-12-20 21:36:23,439:INFO:discord.voice_client: Voice handshake complete. Endpoint found madrid9538.discord.media
-2023-12-20 21:36:26,627:INFO:discord.player: ffmpeg process 1784 successfully terminated with return code of 4294967274.
-2023-12-20 21:41:54,250:ERROR:discord.client: Attempting a reconnect in 1.91s
-Traceback (most recent call last):
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\client.py", line 659, in connect
-    await self.ws.poll_event()
-  File "C:\Users\Enrique\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\discord\gateway.py", line 646, in poll_event
-    raise ConnectionClosed(self.socket, shard_id=self.shard_id, code=code) from None
-discord.errors.ConnectionClosed: Shard ID None WebSocket closed with 1000
-2023-12-20 21:41:56,486:INFO:discord.gateway: Shard ID None has successfully RESUMED session 9dda58e9b7e52fd7865a3311011591ef.
-2023-12-20 21:56:11,219:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)
+2024-02-25 12:09:20,703:DEBUG:discord.client: on_ready has successfully been registered as an event
+2024-02-25 12:09:20,703:DEBUG:discord.client: on_member_join has successfully been registered as an event
+2024-02-25 12:09:20,704:INFO:discord.client: logging in using static token
+2024-02-25 12:09:21,719:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 9c34cc110de6307b7b4e7df446c554c3).
