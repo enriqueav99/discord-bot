@@ -1,6 +1,6 @@
 variables.json
 venv/
-img/*poke*
+img/*
 src/__pycache__
 src/_pycache_/*
 discord.log

@@ -1,8 +1,8 @@
 import discord
 from src.leer_csv import comprobar_whitelist
 from src.leer_csv import comprobar_whitelist
-import random
-import requests
+import subprocess
+import os
 
 
 async def mandar_rick(bot, id):
@@ -15,7 +15,7 @@ async def mandar_rick(bot, id):
             await general_channel.send(file=picture)
     except FileNotFoundError:
         await general_channel.send('No se pudo encontrar la imagen.')
-        
+
 async def rep_sonido(ctx):
     if comprobar_whitelist(ctx.author.name):
         voice_client = ctx.guild.voice_client

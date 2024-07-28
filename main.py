@@ -10,6 +10,7 @@ from src.leer_csv import comprobar_whitelist
 import random
 from src.poke_func import adivinar_pokemon
 from src.info import definir_info
+from src.aloe import foto_aloe
 import yt_dlp
 import asyncio
 
@@ -79,11 +80,11 @@ async def leave(ctx):
     else:
         await ctx.send('No estoy en un canal de voz, no me molestes o llamo a Tomás.')
 
- 
+
 @bot.command()
 async def rr(ctx):
     await rep_sonido(ctx)
-    
+
 @bot.command()
 async def rick(ctx):
     await mandar_rick(bot, id_canal_bots)
@@ -128,7 +129,9 @@ async def play(ctx, url: str):
 
     await ctx.send(f'Reproduciendo audio de: {info["title"]}')
 
-
+@bot.command()
+async def aloe(ctx):
+    await foto_aloe(ctx, bot, id_canal_bots)
 
 
 # Reemplaza 'TOKEN' con tu token de bot de Discord
