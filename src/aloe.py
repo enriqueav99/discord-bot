@@ -9,7 +9,7 @@ def tomar_foto():
         'ffmpeg',
         '-y',  # Overwrite output file if it exists
         '-f', 'v4l2',
-        '-i', '/dev/video0',
+        '-i', os.getenv("DISCORD_BOT_CAM"),
         '-frames:v', '1',  # Capture a single frame
         filename
     ]

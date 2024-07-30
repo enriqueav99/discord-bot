@@ -1,4 +1,4 @@
-2024-07-28 18:49:56,981:DEBUG:discord.client: on_ready has successfully been registered as an event
-2024-07-28 18:49:56,981:DEBUG:discord.client: on_member_join has successfully been registered as an event
-2024-07-28 18:49:56,983:INFO:discord.client: logging in using static token
-2024-07-28 18:49:57,875:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 3ebf3fd653963aa7a517989fbb50e2c7).
+2024-07-30 16:24:52,375:DEBUG:discord.client: on_ready has successfully been registered as an event
+2024-07-30 16:24:52,375:DEBUG:discord.client: on_member_join has successfully been registered as an event
+2024-07-30 16:24:52,376:INFO:discord.client: logging in using static token
+2024-07-30 16:24:53,262:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 249a869ed078e7d5c8617fb274428331).
