@@ -20,8 +20,8 @@ start_logger()
 # Get variables.json
 with open("variables.json", "r") as config:
     data = json.load(config)
-    token = data["token"]
-    prefix = data["prefix"]
+    token = os.getenv("DISCORD_BOT_TOKEN")
+    prefix = os.getenv("DISCORD_BOT_PREFIX")
     id_canal_principal = data["id_canal_principal"],
     id_canal_bots = data["id_canal_bots"]
 
