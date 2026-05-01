@@ -1,0 +1,139 @@
+"""Comandos de utilidad: userinfo, serverinfo, avatar, poll, recordatorio."""
+
+from __future__ import annotations
+
+import asyncio
+import re
+from datetime import UTC, datetime, timedelta
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+_DURATION_RE = re.compile(r"(?P<n>\d+)(?P<u>[smhd])")
+
+
+def parse_duration(text: str) -> timedelta | None:
+    total = timedelta()
+    found = False
+    for match in _DURATION_RE.finditer(text.lower()):
+        found = True
+        n = int(match.group("n"))
+        u = match.group("u")
+        if u == "s":
+            total += timedelta(seconds=n)
+        elif u == "m":
+            total += timedelta(minutes=n)
+        elif u == "h":
+            total += timedelta(hours=n)
+        elif u == "d":
+            total += timedelta(days=n)
+    return total if found and total.total_seconds() > 0 else None
+
+
+class Utility(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @commands.hybrid_command(name="userinfo", description="Información de un usuario")
+    @app_commands.describe(miembro="Usuario (default: tú)")
+    async def userinfo(self, ctx: commands.Context, miembro: discord.Member | None = None):
+        m = miembro or ctx.author
+        embed = discord.Embed(title=str(m), color=m.color)
+        embed.set_thumbnail(url=m.display_avatar.url)
+        embed.add_field(name="ID", value=m.id, inline=True)
+        embed.add_field(name="Bot", value="Sí" if m.bot else "No", inline=True)
+        embed.add_field(
+            name="Cuenta creada",
+            value=discord.utils.format_dt(m.created_at, "R"),
+            inline=False,
+        )
+        if isinstance(m, discord.Member) and m.joined_at:
+            embed.add_field(
+                name="Se unió",
+                value=discord.utils.format_dt(m.joined_at, "R"),
+                inline=False,
+            )
+            roles = [r.mention for r in m.roles if r != ctx.guild.default_role]
+            if roles:
+                embed.add_field(
+                    name=f"Roles ({len(roles)})",
+                    value=" ".join(roles[:20]),
+                    inline=False,
+                )
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="serverinfo", description="Información del servidor")
+    async def serverinfo(self, ctx: commands.Context):
+        g = ctx.guild
+        if not g:
+            return
+        embed = discord.Embed(title=g.name, color=0x5865F2)
+        if g.icon:
+            embed.set_thumbnail(url=g.icon.url)
+        embed.add_field(name="ID", value=g.id, inline=True)
+        embed.add_field(name="Owner", value=g.owner.mention if g.owner else "?", inline=True)
+        embed.add_field(name="Miembros", value=g.member_count, inline=True)
+        embed.add_field(name="Canales", value=len(g.channels), inline=True)
+        embed.add_field(name="Roles", value=len(g.roles), inline=True)
+        embed.add_field(name="Boost", value=f"Tier {g.premium_tier}", inline=True)
+        embed.add_field(
+            name="Creado",
+            value=discord.utils.format_dt(g.created_at, "R"),
+            inline=False,
+        )
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="avatar", description="Avatar de un usuario")
+    async def avatar(self, ctx: commands.Context, miembro: discord.Member | None = None):
+        m = miembro or ctx.author
+        embed = discord.Embed(title=f"Avatar de {m}", color=m.color)
+        embed.set_image(url=m.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="poll", description="Crear una encuesta")
+    @app_commands.describe(
+        pregunta="La pregunta",
+        opciones="Opciones separadas por |  (máx 10)",
+    )
+    async def poll(self, ctx: commands.Context, pregunta: str, *, opciones: str):
+        partes = [p.strip() for p in opciones.split("|") if p.strip()]
+        if len(partes) < 2 or len(partes) > 10:
+            await ctx.send("Necesitas entre 2 y 10 opciones separadas por `|`.")
+            return
+        emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+        descripcion = "\n".join(f"{emojis[i]} {p}" for i, p in enumerate(partes))
+        embed = discord.Embed(title=f"📊 {pregunta}", description=descripcion, color=0x00AAFF)
+        embed.set_footer(text=f"Encuesta de {ctx.author}")
+        msg = await ctx.send(embed=embed)
+        for i in range(len(partes)):
+            await msg.add_reaction(emojis[i])
+
+    @commands.hybrid_command(name="recordatorio", description="Te recuerda algo")
+    @app_commands.describe(
+        tiempo="Duración (ej. 10m, 1h30m, 2d)",
+        mensaje="Qué quieres recordar",
+    )
+    async def recordatorio(self, ctx: commands.Context, tiempo: str, *, mensaje: str):
+        delta = parse_duration(tiempo)
+        if not delta:
+            await ctx.send("Formato inválido. Usa por ej. `10m`, `1h30m`, `2d`.")
+            return
+        if delta.total_seconds() > 60 * 60 * 24 * 30:
+            await ctx.send("Máximo 30 días.")
+            return
+
+        when = datetime.now(UTC) + delta
+        await ctx.send(f"⏰ Te recordaré {discord.utils.format_dt(when, 'R')}: *{mensaje}*")
+        await asyncio.sleep(delta.total_seconds())
+        try:
+            await ctx.author.send(
+                f"⏰ Recordatorio (de hace {tiempo}): {mensaje}\n"
+                f"Contexto: {ctx.channel.mention if ctx.guild else 'DM'}"
+            )
+        except discord.Forbidden:
+            await ctx.channel.send(f"{ctx.author.mention} ⏰ {mensaje}")
+
+
+async def setup(bot: commands.Bot):
+    await bot.add_cog(Utility(bot))

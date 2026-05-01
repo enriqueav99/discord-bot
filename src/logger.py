@@ -12,9 +12,7 @@ def start_logger():
         maxBytes=2 * 1024 * 1024,
         backupCount=3,
     )
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
-    )
+    file_handler.setFormatter(logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s"))
     logger.addHandler(file_handler)
 
     stream_handler = logging.StreamHandler()
