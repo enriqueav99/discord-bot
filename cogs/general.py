@@ -33,9 +33,12 @@ class General(commands.Cog):
         categorias = {
             "General": "ping, saludar, info, help_korea",
             "Diversión": "8ball, dado, moneda, choose, meme, rick",
-            "Juegos": "adivina",
+            "Juegos": "adivina, pokeranking, trivia",
             "Voz": "join, leave, rr, aloe",
-            "Música": "play, queue, skip, pause, resume, stop, nowplaying, volume",
+            "Música": (
+                "play, queue, skip, pause, resume, stop, clearqueue, remove, "
+                "shuffle, loop, nowplaying, volume"
+            ),
             "Utilidad": "userinfo, serverinfo, avatar, poll, recordatorio",
             "Moderación": "clear, kick, ban, timeout, say",
         }
