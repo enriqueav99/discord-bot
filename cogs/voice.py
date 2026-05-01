@@ -101,27 +101,6 @@ class Voice(commands.Cog):
             if ctx.channel.id != canal.id:
                 await ctx.send("Foto enviada al canal de bots.", ephemeral=True)
 
-    @commands.Cog.listener()
-    async def on_voice_state_update(
-        self,
-        member: discord.Member,
-        before: discord.VoiceState,
-        after: discord.VoiceState,
-    ):
-        """Auto-disconnect cuando el bot se queda solo en el canal."""
-        if member.bot:
-            return
-        guild = member.guild
-        vc = guild.voice_client
-        if not vc or not vc.channel:
-            return
-        humanos = [m for m in vc.channel.members if not m.bot]
-        if not humanos:
-            await asyncio.sleep(30)
-            humanos = [m for m in vc.channel.members if not m.bot] if vc.channel else []
-            if vc.is_connected() and not humanos:
-                await vc.disconnect(force=False)
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Voice(bot))

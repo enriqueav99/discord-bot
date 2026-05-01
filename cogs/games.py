@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+from io import BytesIO
 
 import aiohttp
 import discord
@@ -11,14 +12,16 @@ from discord.ext import commands
 from PIL import Image
 
 
-def obtener_silueta(imagen_path: str) -> Image.Image:
-    imagen = Image.open(imagen_path)
+def obtener_silueta(imagen_bytes: bytes) -> bytes:
+    imagen = Image.open(BytesIO(imagen_bytes))
     imagen_gris = imagen.convert("L")
     umbral = 100
     silueta = imagen_gris.point(lambda p: 0 if p < umbral else 255)
     final = Image.new("RGB", imagen.size, "black")
     final.paste(silueta, (0, 0), silueta)
-    return final
+    out = BytesIO()
+    final.save(out, format="PNG")
+    return out.getvalue()
 
 
 class Games(commands.Cog):
@@ -44,18 +47,10 @@ class Games(commands.Cog):
 
         nombre = data["name"].capitalize()
         loop = asyncio.get_running_loop()
-
-        def _process():
-            with open("img/pokemon_temp.png", "wb") as f:
-                f.write(img_bytes)
-            silueta = obtener_silueta("img/pokemon_temp.png")
-            silueta.save("img/silueta_pokemon.png")
-
-        await loop.run_in_executor(None, _process)
+        silueta_bytes = await loop.run_in_executor(None, obtener_silueta, img_bytes)
 
         await ctx.send("Adivina este Pokémon, tienes 30 segundos!")
-        with open("img/silueta_pokemon.png", "rb") as f:
-            await ctx.send(file=discord.File(f, filename="silueta.png"))
+        await ctx.send(file=discord.File(BytesIO(silueta_bytes), filename="silueta.png"))
 
         def check(msg: discord.Message):
             return msg.author == ctx.author and msg.channel == ctx.channel
