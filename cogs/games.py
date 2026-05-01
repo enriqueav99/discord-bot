@@ -48,17 +48,14 @@ def normalizar(texto: str) -> str:
 
 
 def obtener_silueta(imagen_bytes: bytes) -> bytes:
+    """Genera silueta usando el canal alpha del sprite. Vectorizado en C vía PIL."""
     imagen = Image.open(BytesIO(imagen_bytes)).convert("RGBA")
-    out = Image.new("RGBA", imagen.size, (0, 0, 0, 0))
-    pixels = imagen.load()
-    salida = out.load()
-    for y in range(imagen.size[1]):
-        for x in range(imagen.size[0]):
-            r, g, b, a = pixels[x, y]
-            if a > 0:
-                salida[x, y] = (0, 0, 0, 255)
+    alpha = imagen.split()[-1]
+    silueta = Image.new("RGBA", imagen.size, (0, 0, 0, 0))
+    negro = Image.new("RGBA", imagen.size, (0, 0, 0, 255))
+    silueta.paste(negro, mask=alpha)
     buf = BytesIO()
-    out.save(buf, format="PNG")
+    silueta.save(buf, format="PNG", optimize=False)
     return buf.getvalue()
 
 
@@ -67,17 +64,58 @@ class Games(commands.Cog):
         self.bot = bot
         # ranking[guild_id][user_id] = puntos
         self.ranking: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+        # Caché en memoria de datos de pokémon ya consultados (1025 × ~5KB = ~5MB tope).
+        self._pokemon_cache: dict[int, tuple[dict, dict, bytes]] = {}
+        self._session: aiohttp.ClientSession | None = None
 
-    async def _fetch_pokemon(self, pokemon_id: int) -> tuple[dict, dict] | None:
-        async with aiohttp.ClientSession() as s:
-            try:
-                async with s.get(f"{POKEAPI}/pokemon/{pokemon_id}", timeout=10) as r:
-                    pokemon = await r.json()
-                async with s.get(f"{POKEAPI}/pokemon-species/{pokemon_id}", timeout=10) as r:
-                    species = await r.json()
-            except (TimeoutError, aiohttp.ClientError):
-                return None
-        return pokemon, species
+    async def cog_unload(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def _fetch_pokemon(self, pokemon_id: int) -> tuple[dict, dict, bytes] | None:
+        """Devuelve (pokemon, species, sprite_bytes). Cachea para no machacar PokeAPI."""
+        if pokemon_id in self._pokemon_cache:
+            return self._pokemon_cache[pokemon_id]
+
+        s = await self._get_session()
+
+        async def _json(url: str) -> dict:
+            async with s.get(url, timeout=10) as r:
+                return await r.json()
+
+        try:
+            pokemon, species = await asyncio.gather(
+                _json(f"{POKEAPI}/pokemon/{pokemon_id}"),
+                _json(f"{POKEAPI}/pokemon-species/{pokemon_id}"),
+            )
+        except (TimeoutError, aiohttp.ClientError):
+            return None
+
+        # Sprite pequeño (96x96) para procesar en Raspberry; el artwork grande
+        # se usa solo como URL en el embed final (lo renderiza Discord).
+        sprite_url = pokemon.get("sprites", {}).get("front_default")
+        if not sprite_url:
+            return None
+        try:
+            async with s.get(sprite_url, timeout=10) as r:
+                sprite_bytes = await r.read()
+        except (TimeoutError, aiohttp.ClientError):
+            return None
+
+        result = (pokemon, species, sprite_bytes)
+        self._pokemon_cache[pokemon_id] = result
+        return result
+
+    @staticmethod
+    def _artwork_url(pokemon: dict) -> str | None:
+        return pokemon.get("sprites", {}).get("other", {}).get("official-artwork", {}).get(
+            "front_default"
+        ) or pokemon.get("sprites", {}).get("front_default")
 
     @staticmethod
     def _nombres_aceptados(species: dict) -> list[str]:
@@ -111,21 +149,7 @@ class Games(commands.Cog):
         if not result:
             await ctx.send("No pude obtener el Pokémon ahora mismo.")
             return
-        pokemon, species = result
-
-        sprite_url = pokemon.get("sprites", {}).get("other", {}).get("official-artwork", {}).get(
-            "front_default"
-        ) or pokemon.get("sprites", {}).get("front_default")
-        if not sprite_url:
-            await ctx.send("Este Pokémon no tiene sprite. Reintenta.")
-            return
-
-        try:
-            async with aiohttp.ClientSession() as s, s.get(sprite_url, timeout=10) as r:
-                img_bytes = await r.read()
-        except (TimeoutError, aiohttp.ClientError):
-            await ctx.send("Error descargando la imagen.")
-            return
+        pokemon, species, sprite_bytes = result
 
         nombres_norm = self._nombres_aceptados(species)
         nombre_es = next(
@@ -134,7 +158,8 @@ class Games(commands.Cog):
         )
 
         loop = asyncio.get_running_loop()
-        silueta_bytes = await loop.run_in_executor(None, obtener_silueta, img_bytes)
+        silueta_bytes = await loop.run_in_executor(None, obtener_silueta, sprite_bytes)
+        artwork_url = self._artwork_url(pokemon)
 
         embed = discord.Embed(
             title="¿Quién es este Pokémon?",
@@ -175,7 +200,8 @@ class Games(commands.Cog):
                     description=f"{msg.author.mention} acertó. Lleva **{puntos}** puntos en este servidor.",
                     color=self._color_por_tipo(pokemon),
                 )
-                reveal.set_thumbnail(url=sprite_url)
+                if artwork_url:
+                    reveal.set_thumbnail(url=artwork_url)
                 tipos = ", ".join(t["type"]["name"] for t in pokemon.get("types", []))
                 if tipos:
                     reveal.add_field(name="Tipo(s)", value=tipos, inline=True)
@@ -188,7 +214,8 @@ class Games(commands.Cog):
             title=f"⏱️ Se acabó el tiempo. Era **{nombre_es}**.",
             color=self._color_por_tipo(pokemon),
         )
-        reveal.set_thumbnail(url=sprite_url)
+        if artwork_url:
+            reveal.set_thumbnail(url=artwork_url)
         await ctx.send(embed=reveal)
 
     @adivina.error
