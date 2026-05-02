@@ -203,7 +203,23 @@ class Music(commands.Cog):
 
         player = self.get_player(ctx.guild.id)
 
-        entries = info.get("entries")
+        # Distinguir entre 3 casos:
+        # 1. Vídeo único (URL directa): info no tiene entries
+        # 2. Playlist real (URL de playlist): info tiene entries y query es URL
+        # 3. Búsqueda (default_search ytsearch): info tiene entries pero query es texto;
+        #    queremos solo el primer resultado, no encolar las 5 búsquedas.
+        is_url = query.strip().lower().startswith(("http://", "https://"))
+        is_search = bool(info.get("entries")) and not is_url
+
+        if is_search:
+            entries = [e for e in info["entries"] if e]
+            if not entries:
+                await ctx.send("La búsqueda no devolvió resultados.")
+                return
+            info = entries[0]
+
+        entries = info.get("entries") if not is_search else None
+
         if entries is not None:
             entries = [e for e in entries if e][:MAX_PLAYLIST]
             if not entries:
@@ -217,6 +233,9 @@ class Music(commands.Cog):
                 if track:
                     player.queue.append(track)
                     added += 1
+            if added == 0:
+                await ctx.send("No pude extraer ningún audio de la playlist.")
+                return
             await ctx.send(
                 f"📥 Añadidas **{added}** canciones de la playlist *{info.get('title', '?')}*."
             )
