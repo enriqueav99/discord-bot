@@ -2,7 +2,6 @@
 
 from collections import deque
 
-import discord.ext.test as dpytest
 import pytest
 
 from cogs.music import LoopMode, Track
@@ -20,80 +19,70 @@ def _track(title: str = "Una canción") -> Track:
     )
 
 
-async def test_queue_vacia(bot):
-    await dpytest.message("<queue")
-    msg = dpytest.get_message()
-    assert "vacía" in msg.content.lower()
+async def test_queue_vacia(harness):
+    result = await harness.invoke("queue")
+    assert "vacía" in result.all_text.lower()
 
 
-async def test_queue_con_canciones(bot):
-    music = bot.get_cog("Music")
-    player = music.get_player(dpytest.get_config().guilds[0].id)
+async def test_queue_con_canciones(harness):
+    music = harness.bot.get_cog("Music")
+    player = music.get_player(100)
     player.queue = deque([_track("Bohemian Rhapsody"), _track("Wonderwall")])
 
-    await dpytest.message("<queue")
-    msg = dpytest.get_message()
-    assert msg.embeds
-    descripcion = " ".join(f.value for f in msg.embeds[0].fields)
-    assert "Bohemian Rhapsody" in descripcion
-    assert "Wonderwall" in descripcion
+    result = await harness.invoke("queue")
+    assert result.embeds
+    assert "Bohemian Rhapsody" in result.all_text
+    assert "Wonderwall" in result.all_text
 
 
-async def test_clearqueue(bot):
-    music = bot.get_cog("Music")
-    player = music.get_player(dpytest.get_config().guilds[0].id)
+async def test_clearqueue(harness):
+    music = harness.bot.get_cog("Music")
+    player = music.get_player(100)
     player.queue = deque([_track("a"), _track("b"), _track("c")])
 
-    await dpytest.message("<clearqueue")
-    msg = dpytest.get_message()
-    assert "3" in msg.content
+    result = await harness.invoke("clearqueue")
+    assert "3" in result.all_text
     assert len(player.queue) == 0
 
 
-async def test_remove_posicion_invalida(bot):
-    music = bot.get_cog("Music")
-    player = music.get_player(dpytest.get_config().guilds[0].id)
+async def test_remove_posicion_invalida(harness):
+    music = harness.bot.get_cog("Music")
+    player = music.get_player(100)
     player.queue = deque([_track("a")])
 
-    await dpytest.message("<remove 99")
-    msg = dpytest.get_message()
-    assert "inválida" in msg.content
+    result = await harness.invoke("remove", posicion=99)
+    assert "inválida" in result.all_text
 
 
-async def test_remove_correcto(bot):
-    music = bot.get_cog("Music")
-    player = music.get_player(dpytest.get_config().guilds[0].id)
+async def test_remove_correcto(harness):
+    music = harness.bot.get_cog("Music")
+    player = music.get_player(100)
     player.queue = deque([_track("a"), _track("b"), _track("c")])
 
-    await dpytest.message("<remove 2")
-    msg = dpytest.get_message()
-    assert "b" in msg.content
-    titulos = [t.title for t in player.queue]
-    assert titulos == ["a", "c"]
+    result = await harness.invoke("remove", posicion=2)
+    assert "b" in result.all_text
+    assert [t.title for t in player.queue] == ["a", "c"]
 
 
-async def test_shuffle_pocas(bot):
-    await dpytest.message("<shuffle")
-    msg = dpytest.get_message()
-    assert "al menos 2" in msg.content
+async def test_shuffle_pocas(harness):
+    music = harness.bot.get_cog("Music")
+    music.get_player(100).queue = deque()
+    result = await harness.invoke("shuffle")
+    assert "al menos 2" in result.all_text
 
 
-async def test_loop_mode_track(bot):
-    await dpytest.message("<loop track")
-    msg = dpytest.get_message()
-    assert "track" in msg.content
-    music = bot.get_cog("Music")
-    player = music.get_player(dpytest.get_config().guilds[0].id)
-    assert player.loop_mode == LoopMode.TRACK
+async def test_loop_mode_track(harness):
+    result = await harness.invoke("loop", modo="track")
+    assert "track" in result.all_text
+    music = harness.bot.get_cog("Music")
+    assert music.get_player(100).loop_mode == LoopMode.TRACK
 
 
-async def test_volume_fuera_de_rango(bot):
-    await dpytest.message("<volume 9999")
-    msg = dpytest.get_message()
-    assert "0 y 200" in msg.content
+async def test_volume_fuera_de_rango(harness):
+    result = await harness.invoke("volume", nivel=9999)
+    assert "0 y 200" in result.all_text
 
 
-async def test_nowplaying_nada(bot):
-    await dpytest.message("<nowplaying")
-    msg = dpytest.get_message()
-    assert "No hay nada" in msg.content
+async def test_nowplaying_nada(harness):
+    result = await harness.invoke("nowplaying")
+    assert "No hay nada" in result.all_text
