@@ -1,21 +1,24 @@
 import discord
+
+
 def definir_info():
     embed = discord.Embed(
         title="Bot de Korea",
-        description="¡Bienvenido al Bot de Korea! Aquí tienes información sobre este bot.",
-        color=0xff0000
+        description="¡Bienvenido al Bot de Korea!",
+        color=0xFF0000,
     )
     embed.add_field(name="Autor", value="enriqueav99", inline=False)
-    embed.add_field(name="Versión", value="0.2.0", inline=False)
-    embed.add_field(name="Descripción", value="Bot koreano para que por fin alguien ponga orden aquí, algunas funciones tendrán whitelist.", inline=False)
-    embed.add_field(name="Comandos", value="Lista de comandos disponibles:", inline=False)
-    embed.add_field(name="<saludar", value="Saluda al bot.", inline=True)
-    embed.add_field(name="<ping", value="Obtener respuesta 'pong'.", inline=True)
-    embed.add_field(name="<info", value="Muestra este mensaje de información.", inline=False)
-    embed.add_field(name="<adivina", value="Adivina cual es el pokemon de la imagen en 30 segundos.", inline=True)
-    embed.add_field(name="<join", value="El bot se une a la sala en la que estés.", inline=True)
-    embed.add_field(name="<leave", value="El bot se va de la sala.", inline=True)
-    # Añade más campos según los comandos que tengas en tu bot
-
+    embed.add_field(name="Versión", value="0.3.0", inline=False)
+    embed.add_field(
+        name="Descripción",
+        value="Bot koreano para que por fin alguien ponga orden aquí. "
+        "Algunas funciones tienen whitelist.",
+        inline=False,
+    )
+    embed.add_field(
+        name="Comandos",
+        value="Usa `<help_korea` o `/help_korea` para ver la lista por categorías.",
+        inline=False,
+    )
     embed.set_footer(text="Usa el bot con responsabilidad")
     return embed
