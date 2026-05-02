@@ -63,8 +63,22 @@ class KoreaBot(commands.Bot):
                 )
 
 
+def _ensure_opus() -> None:
+    if discord.opus.is_loaded():
+        return
+    for name in ("libopus.so.0", "libopus.so", "opus"):
+        try:
+            discord.opus.load_opus(name)
+            log.info("libopus cargado: %s", name)
+            return
+        except OSError:
+            continue
+    log.warning("libopus no se pudo cargar; la reproducción de voz no tendrá audio")
+
+
 async def main():
     start_logger()
+    _ensure_opus()
     config = BotConfig.load()
     async with KoreaBot(config) as bot:
         await bot.start(config.token, reconnect=True)
