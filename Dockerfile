@@ -27,6 +27,8 @@ COPY . .
 
 RUN useradd --create-home --shell /bin/bash bot \
     && chown -R bot:bot /app
+# Optional: mount a Netscape-format cookies.txt at /app/cookies.txt to avoid YouTube rate limits.
+#   docker run -v /host/path/cookies.txt:/app/cookies.txt:ro ...
 USER bot
 
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
