@@ -26,21 +26,23 @@ class BotConfig:
     @classmethod
     def load(cls, variables_path: str = "variables.json") -> BotConfig:
         token = os.getenv("DISCORD_BOT_TOKEN")
-        if not token:
-            raise RuntimeError("DISCORD_BOT_TOKEN no está definido en el entorno")
-
         prefix = os.getenv("DISCORD_BOT_PREFIX", "<")
-
         id_canal_principal = os.getenv("DISCORD_ID_CANAL_PRINCIPAL")
         id_canal_bots = os.getenv("DISCORD_ID_CANAL_BOTS")
 
-        if not id_canal_principal or not id_canal_bots:
+        if not token or not id_canal_principal or not id_canal_bots:
             path = Path(variables_path)
             if path.exists():
                 with path.open("r", encoding="utf-8") as f:
                     data = json.load(f)
+                token = token or data.get("token")
                 id_canal_principal = id_canal_principal or data.get("id_canal_principal")
                 id_canal_bots = id_canal_bots or data.get("id_canal_bots")
+
+        if not token:
+            raise RuntimeError(
+                "DISCORD_BOT_TOKEN no está definido en el entorno ni en variables.json"
+            )
 
         if not id_canal_principal or not id_canal_bots:
             raise RuntimeError(

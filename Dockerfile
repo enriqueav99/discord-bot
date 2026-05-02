@@ -14,6 +14,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Patch discord.py: treat 4006 (stale session) as a permanent disconnect, not retriable.
+# Without this, poll_voice_ws retries indefinitely on 4006 instead of disconnecting cleanly.
+RUN python -c "\
+import discord, re; \
+p = discord.__file__.replace('__init__.py', 'voice_client.py'); \
+code = open(p).read(); \
+code = code.replace('if exc.code in (1000, 4015):', 'if exc.code in (1000, 4006, 4015):'); \
+open(p, 'w').write(code)"
+
 COPY . .
 
 RUN useradd --create-home --shell /bin/bash bot \

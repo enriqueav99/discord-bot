@@ -23,12 +23,16 @@ class Voice(commands.Cog):
         canal = ctx.author.voice.channel
         try:
             if ctx.voice_client is None:
-                await canal.connect()
+                await canal.connect(reconnect=False)
             else:
                 await ctx.voice_client.move_to(canal)
             await ctx.send(f"Me he unido a **{canal}**")
-        except discord.ClientException:
-            await ctx.send("Ya estoy en un canal de voz.")
+        except discord.errors.ConnectionClosed as e:
+            if ctx.guild.voice_client:
+                await ctx.guild.voice_client.disconnect(force=True)
+            await ctx.send(
+                f"No se pudo conectar (error {e.code}). Espera ~30 s e inténtalo de nuevo."
+            )
         except Exception as e:
             await ctx.send(f"Error: {e}")
 
@@ -47,7 +51,7 @@ class Voice(commands.Cog):
             await ctx.send("Lo siento, te jodes, no tienes permiso para usar este comando.")
             return
         vc = ctx.guild.voice_client if ctx.guild else None
-        if not vc or not vc.is_connected():
+        if vc is None:
             await ctx.send("Debo de estar en un canal de voz para usar este comando.")
             return
         try:
