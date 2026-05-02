@@ -1,0 +1,181 @@
+name: docker-release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag a publicar (default: latest)"
+        required: false
+        default: "latest"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  SERVER_REPO: enriqueav99/server
+  COMPOSE_PATH: composes/apps/discord-bot/docker-compose.yaml
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},event=tag
+            type=semver,pattern={{major}}.{{minor}},event=tag
+            type=semver,pattern={{major}},event=tag
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push (multi-arch)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Resumen
+        run: |
+          {
+            echo "### 🐳 Imagen publicada"
+            echo ""
+            echo "Tags:"
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  open-deploy-pr:
+    needs: build-and-push
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout server repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SERVER_REPO }}
+          token: ${{ secrets.SERVER_REPO_PAT }}
+          path: server
+
+      - name: Bump image tag in compose
+        id: bump
+        env:
+          VERSION: ${{ needs.build-and-push.outputs.version }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        run: |
+          set -euo pipefail
+          cd server
+          file="${{ env.COMPOSE_PATH }}"
+          if [ ! -f "$file" ]; then
+            echo "::error::No existe $file en $SERVER_REPO"
+            exit 1
+          fi
+          # Sustituye la línea `image: ghcr.io/.../discord-bot:<lo-que-sea>`
+          # por la nueva versión, manteniendo indentación.
+          python - <<PY
+          import re, pathlib
+          p = pathlib.Path("$file")
+          content = p.read_text()
+          new_image = "${IMAGE}:${VERSION}"
+          pattern = re.compile(r'(^\s*image:\s*)\S*discord-bot\S*', re.MULTILINE)
+          updated, n = pattern.subn(rf'\1{new_image}', content)
+          if n == 0:
+              raise SystemExit("::error::No encontré la línea image: ...discord-bot... en el compose")
+          p.write_text(updated)
+          print(f"Sustituidas {n} ocurrencia(s) → {new_image}")
+          PY
+          # Diff para el log y para detectar si hay cambios.
+          if git diff --quiet -- "$file"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --no-color -- "$file" | head -40
+          fi
+
+      - name: Create or update PR
+        if: steps.bump.outputs.changed == 'true'
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: server
+          token: ${{ secrets.SERVER_REPO_PAT }}
+          branch: deploy/discord-bot-${{ needs.build-and-push.outputs.version }}
+          delete-branch: true
+          commit-message: "chore(discord-bot): bump image to ${{ needs.build-and-push.outputs.version }}"
+          title: "deploy: discord-bot ${{ needs.build-and-push.outputs.version }}"
+          body: |
+            Bump automático del tag de la imagen de **discord-bot**.
+
+            - Imagen: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}`
+            - Release: ${{ github.event.release.html_url }}
+            - Commit en discord-bot: ${{ github.sha }}
+
+            Esta PR se mergeará automáticamente cuando los checks del repo pasen.
+          labels: |
+            deploy
+            discord-bot
+            automated
+
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ secrets.SERVER_REPO_PAT }}
+        run: |
+          gh pr merge --auto --squash \
+            --repo "${{ env.SERVER_REPO }}" \
+            "${{ steps.cpr.outputs.pull-request-number }}"
+
+      - name: Resumen del deploy
+        if: always()
+        run: |
+          {
+            echo "### 🚀 Deploy PR"
+            echo ""
+            if [ "${{ steps.cpr.outputs.pull-request-number }}" != "" ]; then
+              echo "- PR: ${{ steps.cpr.outputs.pull-request-url }}"
+              echo "- Auto-merge: habilitado (se mergea cuando los checks pasen)"
+            elif [ "${{ steps.bump.outputs.changed }}" = "false" ]; then
+              echo "- Sin cambios en \`${{ env.COMPOSE_PATH }}\` (¿la imagen ya tenía esa versión?)"
+            else
+              echo "- No se creó PR (revisa los logs)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,29 @@
+services:
+  bot:
+    # En desarrollo: build: .
+    # En la Raspberry: comenta la línea de build y usa la imagen publicada en GHCR.
+    build: .
+    # image: ghcr.io/enriqueav99/discord-bot:latest
+    container_name: discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./variables.json:/app/variables.json:ro
+      - ./img:/app/img
+      - ./sonidos:/app/sonidos:ro
+      - ./whitelist.csv:/app/whitelist.csv:ro
+    devices:
+      # Descomenta si quieres usar la cámara:
+      # - "/dev/video0:/dev/video0"
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

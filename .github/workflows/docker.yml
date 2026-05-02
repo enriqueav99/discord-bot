@@ -1,0 +1,39 @@
+name: docker-build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "requirements.txt"
+      - "main.py"
+      - "cogs/**"
+      - "src/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v4
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          load: true
+          tags: discord-bot:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test (import bot module)
+        run: |
+          docker run --rm \
+            -e DISCORD_BOT_TOKEN=dummy \
+            -e DISCORD_ID_CANAL_PRINCIPAL=1 \
+            -e DISCORD_ID_CANAL_BOTS=1 \
+            --entrypoint python \
+            discord-bot:ci -c "import main; print('imports OK')"

@@ -1,22 +1,86 @@
-# Bot koreano
+# Bot de Korea
 
->[!WARNING]
-> Para que funcione el codigo necesitas tener tu archivo variables.json en la raiz del proyecto configurado con el token que necesitas para conectarte a la api del bot en discord.
+Bot de Discord en Python con cogs, slash commands, cola de música, mini-juegos,
+moderación y utilidades varias.
 
->[!WARNING]
-> De momento no he subido el archivo de configuración hasta que no se hable de utilizar variables de entorno.
+## Inicio rápido
 
->[!NOTE]
-> Organizar el codigo por events y commands
+### 1. Configurar variables
 
-## Funcionalidades a futuro
-- Reproducir audio de videos de youtube
-- Que pueda usar sonidos del panel (No he encontrado nada de documentación)
-- Hacer que pueda ensordecer, banear y mutear a gente
+Copia `.env.example` a `.env` y rellena:
 
+```bash
+cp .env.example .env
+```
+
+Variables:
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `DISCORD_BOT_TOKEN` | ✅ | Token del bot |
+| `DISCORD_BOT_PREFIX` | ❌ | Prefijo (default `<`) |
+| `DISCORD_ID_CANAL_PRINCIPAL` | ✅* | Canal de bienvenidas |
+| `DISCORD_ID_CANAL_BOTS` | ✅* | Canal de salida del bot |
+| `DISCORD_BOT_CAM` | ❌ | Dispositivo v4l2 para `/aloe` |
+
+\* También se aceptan vía `variables.json` legacy.
+
+### 2. Lanzar con Docker Compose
+
+```bash
+docker compose up -d --build
+```
+
+### 3. O en local
+
+```bash
+pip install -r requirements-dev.txt
+python main.py
+```
+
+## Comandos
+
+Todos los comandos funcionan tanto con prefijo (`<ping`) como con slash (`/ping`).
+
+| Categoría | Comandos |
+|---|---|
+| General | `ping`, `saludar`, `info`, `help_korea` |
+| Diversión | `8ball`, `dado`, `moneda`, `choose`, `meme`, `rick` |
+| Juegos | `adivina` (Pokémon), `trivia` |
+| Voz | `join`, `leave`, `rr`, `aloe` |
+| Música | `play`, `queue`, `skip`, `pause`, `resume`, `stop`, `nowplaying`, `volume` |
+| Utilidad | `userinfo`, `serverinfo`, `avatar`, `poll`, `recordatorio` |
+| Moderación | `clear`, `kick`, `ban`, `timeout`, `say` |
+
+## Funcionalidades destacadas
+
+- **Cola de música por servidor** con auto-disconnect tras 2 minutos sin gente
+- **Slash commands** sincronizados al inicio
+- **Healthcheck en Docker** vía `healthcheck.py`
+- **Logs rotativos** + salida a stdout (visible en `docker logs`)
+- **Dotenv** para configuración local
+- **Whitelist por nombre** (`whitelist.csv`, separado por `%`)
+- **Tests** con pytest + lint con ruff
+- **CI**: ruff, pytest (3.11/3.12), build docker, CodeQL, Dependabot
+
+## Desarrollo
+
+```bash
+# Tests
+pytest
+
+# Lint
+ruff check .
+ruff format .
+```
+
+Para añadir un cog nuevo: crea `cogs/mi_cog.py` con `async def setup(bot): ...`
+y añádelo a `EXTENSIONS` en `cogs/__init__.py`.
 
 ## Otros
-### Go
-Hay una rama go-bot en la que hice unas pruebas con Go en vez de Python.
 
-Lo bueno de Go es que podriamos crear un ejecutable y que cualquier persona pudiese correr el bot sin tener Go instalado ni saber de programación.
+### Go
+
+Hay una rama `go-bot` con una prueba en Go. Lo bueno de Go es que podríamos crear
+un ejecutable y que cualquier persona pudiera correr el bot sin tener Go
+instalado ni saber programar.
