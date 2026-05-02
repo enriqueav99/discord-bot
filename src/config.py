@@ -40,7 +40,9 @@ class BotConfig:
                 id_canal_bots = id_canal_bots or data.get("id_canal_bots")
 
         if not token:
-            raise RuntimeError("DISCORD_BOT_TOKEN no está definido en el entorno ni en variables.json")
+            raise RuntimeError(
+                "DISCORD_BOT_TOKEN no está definido en el entorno ni en variables.json"
+            )
 
         if not id_canal_principal or not id_canal_bots:
             raise RuntimeError(

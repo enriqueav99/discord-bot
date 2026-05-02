@@ -193,7 +193,9 @@ class Music(commands.Cog):
             except discord.errors.ConnectionClosed as e:
                 if ctx.guild.voice_client:
                     await ctx.guild.voice_client.disconnect(force=True)
-                await ctx.send(f"No pude unirme al canal (error {e.code}). Espera ~30 s e inténtalo de nuevo.")
+                await ctx.send(
+                    f"No pude unirme al canal (error {e.code}). Espera ~30 s e inténtalo de nuevo."
+                )
                 return
             except Exception as e:
                 await ctx.send(f"No pude unirme al canal: {e}")
