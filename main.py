@@ -20,8 +20,8 @@ start_logger()
 # Get variables.json
 with open("variables.json", "r") as config:
     data = json.load(config)
-    token = os.getenv("DISCORD_BOT_TOKEN")
-    prefix = os.getenv("DISCORD_BOT_PREFIX")
+    token = os.getenv("DISCORD_BOT_TOKEN") or data.get("token")
+    prefix = os.getenv("DISCORD_BOT_PREFIX") or data.get("prefix")
     id_canal_principal = data["id_canal_principal"],
     id_canal_bots = data["id_canal_bots"]
 
@@ -31,6 +31,8 @@ bot = commands.Bot(command_prefix=prefix, intents = intents, description="Bot de
 
 @bot.event
 async def on_ready():
+    for vc in bot.voice_clients:
+        await vc.disconnect(force=True)
     general_channel = bot.get_channel(id_canal_bots)
     await general_channel.send(f'Conectado como {bot.user}, listo para ser utilizado, como ella hizo conmingo')
 
@@ -60,17 +62,27 @@ async def info(ctx):
 
 @bot.command()
 async def join(ctx):
-    canal_voz = ctx.author.voice.channel
-    if canal_voz:
-        try:
-            await canal_voz.connect()
-            await ctx.send(f"Me he unido a '{canal_voz}'")
-        except discord.ClientException:
-            await ctx.send("Ya estoy en un canal de voz.")
-        except Exception as e:
-            await ctx.send(f"Ocurrió un error: {e}")
-    else:
+    if ctx.author.voice is None:
         await ctx.send("Debes estar en un canal de voz para usar este comando.")
+        return
+    canal_voz = ctx.author.voice.channel
+    try:
+        vc = ctx.guild.voice_client
+        if vc is not None:
+            if vc.channel.id == canal_voz.id:
+                await ctx.send(f"Ya estoy en '{canal_voz}'")
+                return
+            await vc.move_to(canal_voz)
+            await ctx.send(f"Me he movido a '{canal_voz}'")
+        else:
+            await canal_voz.connect(reconnect=False)
+            await ctx.send(f"Me he unido a '{canal_voz}'")
+    except discord.errors.ConnectionClosed as e:
+        if ctx.guild.voice_client:
+            await ctx.guild.voice_client.disconnect(force=True)
+        await ctx.send(f"No se pudo conectar al canal de voz (error {e.code}). Discord tiene una sesión anterior activa — espera ~30 segundos e inténtalo de nuevo.")
+    except Exception as e:
+        await ctx.send(f"Ocurrió un error: {e}")
 
 @bot.command()
 async def leave(ctx):
@@ -94,40 +106,61 @@ async def adivina(ctx):
     await adivinar_pokemon(ctx, bot)
 
 @bot.command()
-async def play(ctx, url: str):
-    # Verificar si el usuario está en un canal de voz
+async def play(ctx, *, url: str):
     if ctx.author.voice is None:
         await ctx.send("¡Debes estar en un canal de voz para usar este comando!")
         return
 
-    # Obtener el canal de voz del usuario
     voice_channel = ctx.author.voice.channel
+    try:
+        if ctx.voice_client is not None:
+            await ctx.voice_client.move_to(voice_channel)
+        else:
+            await voice_channel.connect(reconnect=False)
+    except discord.errors.ConnectionClosed as e:
+        if ctx.guild.voice_client:
+            await ctx.guild.voice_client.disconnect(force=True)
+        await ctx.send(f"No se pudo conectar al canal de voz (error {e.code}). Espera ~30 segundos e inténtalo de nuevo.")
+        return
 
-    # Comprobar si el bot ya está en un canal de voz
-    if ctx.voice_client is not None:
-        await ctx.voice_client.move_to(voice_channel)
-    else:
-        # Conectar al canal de voz si el bot no está en ninguno
-        vc = await voice_channel.connect()
-
-    # Descargar el audio usando yt_dlp y reproducirlo en el canal de voz
     ydl_opts = {
         'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
+        'quiet': True,
+        'no_warnings': True,
+        'noplaylist': True,
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        url = info['formats'][0]['url']
+    loop = asyncio.get_event_loop()
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
 
-        # Reproducir el audio en el canal de voz
-    ctx.voice_client.play(discord.FFmpegPCMAudio(url, executable='ffmpeg'))
+        if info is None:
+            await ctx.send("No se pudo obtener información del video.")
+            return
 
-    await ctx.send(f'Reproduciendo audio de: {info["title"]}')
+        if 'entries' in info:
+            if not info['entries']:
+                await ctx.send("No se encontraron resultados.")
+                return
+            info = info['entries'][0]
+
+        audio_url = info['url']
+
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.stop()
+
+        ffmpeg_opts = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn',
+        }
+        ctx.voice_client.play(discord.FFmpegPCMAudio(audio_url, executable='ffmpeg', **ffmpeg_opts))
+        await ctx.send(f'Reproduciendo: {info["title"]}')
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        await ctx.send(f"Error al reproducir: {e}")
 
 @bot.command()
 async def aloe(ctx):

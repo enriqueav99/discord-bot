@@ -13,5 +13,9 @@ COPY . .
 # Instalamos las dependencias del bot (si tienes un requirements.txt)
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Patch discord.py: treat 4006 (stale session) as a permanent disconnect, not retriable
+RUN sed -i 's/if exc.code in (1000, 4015):/if exc.code in (1000, 4006, 4015):/' \
+    /usr/local/lib/python3.9/site-packages/discord/voice_client.py
+
 # Comando para ejecutar el bot cuando se inicie el contenedor
 CMD ["python", "main.py"]

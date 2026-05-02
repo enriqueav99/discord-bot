@@ -19,9 +19,11 @@ async def mandar_rick(bot, id):
 async def rep_sonido(ctx):
     if comprobar_whitelist(ctx.author.name):
         voice_client = ctx.guild.voice_client
-        if voice_client and voice_client.is_connected():
+        if voice_client is not None:
             try:
-                source = discord.FFmpegPCMAudio('sonidos/rickroll.mp3')  # Reemplaza con la ruta de tu archivo de audio
+                if voice_client.is_playing():
+                    voice_client.stop()
+                source = discord.FFmpegPCMAudio('sonidos/rickroll.mp3')
                 voice_client.play(source)
                 print("Sonido reproducido con éxito.")
             except Exception as e:
