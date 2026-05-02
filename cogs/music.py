@@ -9,6 +9,7 @@ import random
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 import discord
 import yt_dlp
@@ -17,7 +18,9 @@ from discord.ext import commands, tasks
 
 log = logging.getLogger("discord.music")
 
-YDL_OPTS = {
+_COOKIES_FILE = Path("/app/cookies.txt")
+
+YDL_OPTS: dict = {
     "format": "bestaudio/best",
     "noplaylist": False,
     "quiet": True,
@@ -25,7 +28,19 @@ YDL_OPTS = {
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
     "extract_flat": False,
+    "sleep_interval": 2,
+    "max_sleep_interval": 5,
+    "http_headers": {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        )
+    },
 }
+
+if _COOKIES_FILE.exists():
+    YDL_OPTS["cookiefile"] = str(_COOKIES_FILE)
+    log.info("Usando cookies de %s", _COOKIES_FILE)
 
 FFMPEG_OPTS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",

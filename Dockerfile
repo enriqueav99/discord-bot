@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends ffmpeg libopus0 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -27,6 +27,8 @@ COPY . .
 
 RUN useradd --create-home --shell /bin/bash bot \
     && chown -R bot:bot /app
+# Optional: mount a Netscape-format cookies.txt at /app/cookies.txt to avoid YouTube rate limits.
+#   docker run -v /host/path/cookies.txt:/app/cookies.txt:ro ...
 USER bot
 
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
