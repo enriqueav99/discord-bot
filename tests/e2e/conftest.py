@@ -38,6 +38,11 @@ class _BotForTest(commands.Bot):
                 continue
             await self.load_extension(ext)
 
+    @property
+    def latency(self) -> float:
+        # Sin gateway abierto, la latencia real sería NaN.
+        return 0.05
+
 
 @dataclass
 class InvokeResult:

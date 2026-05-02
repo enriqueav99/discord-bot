@@ -75,7 +75,9 @@ async def test_loop_mode_track(harness):
     result = await harness.invoke("loop", modo="track")
     assert "track" in result.all_text
     music = harness.bot.get_cog("Music")
-    assert music.get_player(100).loop_mode == LoopMode.TRACK
+    # Comparar por .value evita problemas si el módulo se reimporta y
+    # el Enum tiene identidad de clase distinta entre conftest y test.
+    assert music.get_player(100).loop_mode.value == LoopMode.TRACK.value
 
 
 async def test_volume_fuera_de_rango(harness):
