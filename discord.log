@@ -1,8 +1,0 @@
-2026-05-02 20:00:23,660:DEBUG:discord.client: on_ready has successfully been registered as an event
-2026-05-02 20:00:23,660:DEBUG:discord.client: on_member_join has successfully been registered as an event
-2026-05-02 20:00:23,662:INFO:discord.client: logging in using static token
-2026-05-02 20:00:24,734:INFO:discord.gateway: Shard ID None has connected to Gateway (Session ID: 18abfcd65a8a58877192b180112c692a).
-2026-05-02 20:00:41,859:INFO:discord.voice_client: Connecting to voice...
-2026-05-02 20:00:41,859:INFO:discord.voice_client: Starting voice handshake... (connection attempt 1)
-2026-05-02 20:00:42,177:INFO:discord.voice_client: Voice handshake complete. Endpoint found c-mad01-c3561c19.discord.media
-2026-05-02 20:00:42,250:INFO:discord.voice_client: The voice handshake is being terminated for Channel ID 318844204824657931 (Guild ID 187670605829505024)
