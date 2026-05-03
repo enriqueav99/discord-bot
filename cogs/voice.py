@@ -1,10 +1,9 @@
-"""Comandos de voz: join, leave, sonidos pregrabados, foto webcam, tts."""
+"""Comandos de voz: join, leave, sonidos pregrabados, tts."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import subprocess
 
 import discord
 from discord import app_commands
@@ -73,48 +72,6 @@ class Voice(commands.Cog):
             await ctx.send("🎶 Rickroll iniciado.")
         except Exception as e:
             await ctx.send(f"Error reproduciendo el sonido: {e}")
-
-    @commands.hybrid_command(name="aloe", description="Foto de la cámara aloe")
-    async def aloe(self, ctx: commands.Context):
-        if not comprobar_whitelist(ctx.author.name):
-            await ctx.send("No tienes permiso para usar este comando.")
-            return
-        cam = self.bot.config.cam_device
-        if not cam:
-            await ctx.send("La cámara no está configurada (DISCORD_BOT_CAM).")
-            return
-
-        loop = asyncio.get_running_loop()
-        filename = "/tmp/aloe.jpg"
-
-        def _capture() -> str | None:
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "v4l2",
-                "-i",
-                cam,
-                "-frames:v",
-                "1",
-                filename,
-            ]
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, timeout=30)
-                return filename
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                return None
-
-        result = await loop.run_in_executor(None, _capture)
-        if not result:
-            await ctx.send("Error al tomar la foto.")
-            return
-
-        canal = self.bot.get_channel(self.bot.config.id_canal_bots)
-        if canal:
-            await canal.send(file=discord.File(result))
-            if ctx.channel.id != canal.id:
-                await ctx.send("Foto enviada al canal de bots.", ephemeral=True)
 
     @commands.hybrid_command(name="tts", description="Reproduce un texto en el canal de voz")
     @app_commands.describe(texto="Texto a reproducir (máx 200 caracteres)")

@@ -21,7 +21,6 @@ class BotConfig:
     prefix: str
     id_canal_principal: int
     id_canal_bots: int
-    cam_device: str | None
     id_canal_logs: int | None
 
     @classmethod
@@ -57,6 +56,5 @@ class BotConfig:
             prefix=prefix,
             id_canal_principal=int(id_canal_principal),
             id_canal_bots=int(id_canal_bots),
-            cam_device=os.getenv("DISCORD_BOT_CAM"),
             id_canal_logs=int(raw_logs) if raw_logs else None,
         )

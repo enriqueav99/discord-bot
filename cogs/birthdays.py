@@ -45,9 +45,9 @@ class Birthdays(commands.Cog):
             self._data[key] = {}
         return self._data[key]
 
-    @commands.hybrid_group(name="cumple", description="Gestión de cumpleaños", fallback="lista")
+    @commands.hybrid_group(name="cumple", description="Gestión de cumpleaños")
     async def cumple(self, ctx: commands.Context):
-        await self.lista(ctx)
+        pass
 
     @cumple.command(name="set", description="Registra tu cumpleaños (DD/MM)")
     @app_commands.describe(fecha="Día y mes, ej. 25/12")

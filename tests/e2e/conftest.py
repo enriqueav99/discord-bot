@@ -176,7 +176,7 @@ async def bot():
         prefix="<",
         id_canal_principal=1,
         id_canal_bots=2,
-        cam_device=None,
+        id_canal_logs=None,
     )
     b = _BotForTest(config)
     await b._async_setup_hook()
