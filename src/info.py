@@ -15,10 +15,5 @@ def definir_info():
         "Algunas funciones tienen whitelist.",
         inline=False,
     )
-    embed.add_field(
-        name="Comandos",
-        value="Usa `<help_korea` o `/help_korea` para ver la lista por categorías.",
-        inline=False,
-    )
     embed.set_footer(text="Usa el bot con responsabilidad")
     return embed

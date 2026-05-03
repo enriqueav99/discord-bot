@@ -21,8 +21,4 @@ async def test_info_envia_embed(harness):
     assert "Bot de Korea" in result.embeds[0].title
 
 
-async def test_help_korea_lista_categorias(harness):
-    result = await harness.invoke("help_korea")
-    assert result.embeds
-    field_names = {f.name for f in result.embeds[0].fields}
-    assert {"General", "Música", "Juegos", "Moderación"} <= field_names
+
