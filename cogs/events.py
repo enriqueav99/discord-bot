@@ -16,6 +16,15 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
+        role = discord.utils.get(member.guild.roles, name="salmanternis")
+        if role:
+            try:
+                await member.add_roles(role, reason="Rol automático al unirse")
+            except discord.Forbidden:
+                log.warning("Sin permisos para asignar el rol 'salmanternis' a %s", member)
+            except discord.HTTPException as e:
+                log.warning("Error asignando rol a %s: %s", member, e)
+
         canal = self.bot.get_channel(self.bot.config.id_canal_principal)
         if canal:
             await canal.send(f"👋 {member.mention} se ha unido al servidor.")
