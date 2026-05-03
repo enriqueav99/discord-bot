@@ -54,7 +54,7 @@ jobs:
       - name: Crear release
         if: steps.bump.outputs.type != 'none'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SERVER_REPO_PAT }}
         run: |
           gh release create "${{ steps.version.outputs.new }}" \
             --title "${{ steps.version.outputs.new }}" \
