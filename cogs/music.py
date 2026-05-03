@@ -632,19 +632,18 @@ class Music(commands.Cog):
             vc = guild.voice_client
             if not vc or not vc.is_connected():
                 continue
-            humanos = [m for m in vc.channel.members if not m.bot]
-            if not humanos:
-                player = self.players.get(guild.id)
-                if player:
-                    player._idle_seconds += 60
-                    if player._idle_seconds >= 120:
-                        await vc.disconnect(force=False)
-                        player.queue.clear()
-                        player.loop_mode = LoopMode.OFF
-                        player._idle_seconds = 0
+            player = self.players.get(guild.id)
+            if not player:
+                continue
+            if vc.is_playing() or vc.is_paused():
+                player._idle_seconds = 0
             else:
-                player = self.players.get(guild.id)
-                if player:
+                player._idle_seconds += 60
+                if player._idle_seconds >= 900:  # 15 min sin reproducir nada
+                    log.info("Desconectando por inactividad en %s", guild.name)
+                    await vc.disconnect(force=False)
+                    player.queue.clear()
+                    player.loop_mode = LoopMode.OFF
                     player._idle_seconds = 0
 
     @idle_check.before_loop
