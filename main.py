@@ -27,6 +27,7 @@ class KoreaBot(commands.Bot):
             command_prefix=config.prefix,
             intents=intents,
             description="Bot de Korea",
+            help_command=None,
         )
         self.config = config
 

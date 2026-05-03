@@ -21,7 +21,6 @@ Variables:
 | `DISCORD_BOT_PREFIX` | ❌ | Prefijo (default `<`) |
 | `DISCORD_ID_CANAL_PRINCIPAL` | ✅* | Canal de bienvenidas |
 | `DISCORD_ID_CANAL_BOTS` | ✅* | Canal de salida del bot |
-| `DISCORD_BOT_CAM` | ❌ | Dispositivo v4l2 para `/aloe` |
 
 \* También se aceptan vía `variables.json` legacy.
 
@@ -44,12 +43,13 @@ Todos los comandos funcionan tanto con prefijo (`<ping`) como con slash (`/ping`
 
 | Categoría | Comandos |
 |---|---|
-| General | `ping`, `saludar`, `info`, `help_korea` |
+| General | `ping`, `saludar`, `info`, `help` |
 | Diversión | `8ball`, `dado`, `moneda`, `choose`, `meme`, `rick` |
 | Juegos | `adivina` (Pokémon), `trivia` |
-| Voz | `join`, `leave`, `rr`, `aloe` |
-| Música | `play`, `queue`, `skip`, `pause`, `resume`, `stop`, `clearqueue`, `remove`, `shuffle`, `loop`, `nowplaying`, `volume`, `autoplay` |
+| Voz | `join`, `leave`, `rr`, `tts` |
+| Música | `play`, `playnext`, `queue`, `skip`, `pause`, `resume`, `stop`, `clearqueue`, `remove`, `shuffle`, `loop`, `nowplaying`, `volume`, `autoplay` |
 | Letras | `lyrics` |
+| Cumpleaños | `cumple set`, `cumple del`, `cumple lista` |
 | Utilidad | `userinfo`, `serverinfo`, `avatar`, `poll`, `recordatorio` |
 | Moderación | `clear`, `kick`, `ban`, `timeout`, `say` |
 
@@ -57,7 +57,12 @@ Todos los comandos funcionan tanto con prefijo (`<ping`) como con slash (`/ping`
 
 - **Cola de música por servidor** con auto-disconnect tras 2 minutos sin gente
 - **Autoplay**: al vaciarse la cola encola automáticamente canciones relacionadas vía YouTube Mix
+- **`playnext`**: inserta una canción como la siguiente (sin esperar al final de la cola)
 - **Letras** (`lyrics`) con búsqueda por título o canción actual, paginado automático
+- **Cumpleaños** (`cumple set/del/lista`): registro persistente + anuncio automático diario
+- **TTS** (`tts`): convierte texto a voz y lo reproduce en el canal de voz (Google TTS)
+- **Logs de moderación**: kick, ban, timeout y clear se registran en `DISCORD_ID_CANAL_LOGS` si está configurado
+- **`help`** dinámico: genera la lista de comandos con descripciones y parámetros desde el código
 - **Recordatorios** (`recordatorio`) con formato `10m`, `1h30m`, `2d` — avisa por DM
 - **Slash commands** sincronizados al inicio
 - **Healthcheck en Docker** vía `healthcheck.py`

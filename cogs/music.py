@@ -398,6 +398,62 @@ class Music(commands.Cog):
 
         await player.start()
 
+    @commands.hybrid_command(
+        name="playnext", description="Inserta una canción como la siguiente en reproducirse"
+    )
+    @app_commands.describe(query="URL o términos de búsqueda")
+    async def playnext(self, ctx: commands.Context, *, query: str):
+        if ctx.author.voice is None or ctx.author.voice.channel is None:
+            await ctx.send("Debes estar en un canal de voz.")
+            return
+
+        if ctx.interaction:
+            await ctx.defer()
+        else:
+            await ctx.message.add_reaction("🔍")
+
+        canal_voz = ctx.author.voice.channel
+        if ctx.voice_client is None:
+            try:
+                await canal_voz.connect(reconnect=False)
+            except discord.errors.ConnectionClosed as e:
+                if ctx.guild.voice_client:
+                    await ctx.guild.voice_client.disconnect(force=True)
+                await ctx.send(
+                    f"No pude unirme al canal (error {e.code}). Espera ~30 s e inténtalo de nuevo."
+                )
+                return
+            except Exception as e:
+                await ctx.send(f"No pude unirme al canal: {e}")
+                return
+        elif ctx.voice_client.channel != canal_voz:
+            await ctx.voice_client.move_to(canal_voz)
+
+        log.info("playnext solicitado por %s: %s", ctx.author, query)
+        info = await self._extract(query)
+        if not ctx.interaction:
+            with contextlib.suppress(discord.HTTPException):
+                await ctx.message.remove_reaction("🔍", ctx.me)
+        if not info:
+            await ctx.send("No pude obtener el audio.")
+            return
+
+        # Siempre tomamos solo un track (primer resultado si es lista/búsqueda)
+        is_url = query.strip().lower().startswith(("http://", "https://"))
+        if not is_url or info.get("entries"):
+            entries = [e for e in (info.get("entries") or []) if e]
+            info = entries[0] if entries else info
+
+        track = _info_to_track(info, str(ctx.author), ctx.channel.id)
+        if not track:
+            await ctx.send("No pude extraer el audio.")
+            return
+
+        player = self.get_player(ctx.guild.id)
+        player.queue.appendleft(track)
+        await ctx.send(embed=_track_embed(track, title="⏭️ Siguiente en la cola", color=0xE67E22))
+        await player.start()
+
     @commands.hybrid_command(name="queue", description="Muestra la cola")
     async def queue_cmd(self, ctx: commands.Context):
         player = self.players.get(ctx.guild.id)

@@ -1,14 +1,24 @@
-"""Comandos de voz: join, leave, sonidos pregrabados, foto webcam."""
+"""Comandos de voz: join, leave, sonidos pregrabados, tts."""
 
 from __future__ import annotations
 
 import asyncio
-import subprocess
+import logging
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from src.leer_csv import comprobar_whitelist
+
+try:
+    from gtts import gTTS
+
+    _TTS_OK = True
+except ImportError:
+    _TTS_OK = False
+
+log = logging.getLogger("discord.voice")
 
 
 class Voice(commands.Cog):
@@ -63,47 +73,37 @@ class Voice(commands.Cog):
         except Exception as e:
             await ctx.send(f"Error reproduciendo el sonido: {e}")
 
-    @commands.hybrid_command(name="aloe", description="Foto de la cámara aloe")
-    async def aloe(self, ctx: commands.Context):
-        if not comprobar_whitelist(ctx.author.name):
-            await ctx.send("No tienes permiso para usar este comando.")
+    @commands.hybrid_command(name="tts", description="Reproduce un texto en el canal de voz")
+    @app_commands.describe(texto="Texto a reproducir (máx 200 caracteres)")
+    async def tts(self, ctx: commands.Context, *, texto: str):
+        if not _TTS_OK:
+            await ctx.send("TTS no disponible (instala `gtts`).")
             return
-        cam = self.bot.config.cam_device
-        if not cam:
-            await ctx.send("La cámara no está configurada (DISCORD_BOT_CAM).")
+        if len(texto) > 200:
+            await ctx.send("Máximo 200 caracteres.")
+            return
+        vc = ctx.guild.voice_client if ctx.guild else None
+        if vc is None:
+            await ctx.send("El bot no está en un canal de voz.")
             return
 
         loop = asyncio.get_running_loop()
-        filename = "/tmp/aloe.jpg"
+        path = f"/tmp/tts_{ctx.guild.id}.mp3"
 
-        def _capture() -> str | None:
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "v4l2",
-                "-i",
-                cam,
-                "-frames:v",
-                "1",
-                filename,
-            ]
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, timeout=30)
-                return filename
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                return None
+        def _generate():
+            gTTS(text=texto, lang="es").save(path)
 
-        result = await loop.run_in_executor(None, _capture)
-        if not result:
-            await ctx.send("Error al tomar la foto.")
+        try:
+            await loop.run_in_executor(None, _generate)
+        except Exception as e:
+            await ctx.send(f"Error generando TTS: {e}")
             return
 
-        canal = self.bot.get_channel(self.bot.config.id_canal_bots)
-        if canal:
-            await canal.send(file=discord.File(result))
-            if ctx.channel.id != canal.id:
-                await ctx.send("Foto enviada al canal de bots.", ephemeral=True)
+        if vc.is_playing():
+            vc.stop()
+        vc.play(discord.FFmpegPCMAudio(path))
+        preview = texto[:60] + ("…" if len(texto) > 60 else "")
+        await ctx.send(f"🔊 *{preview}*")
 
 
 async def setup(bot: commands.Bot):

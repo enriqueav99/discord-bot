@@ -24,29 +24,56 @@ class General(commands.Cog):
     async def info(self, ctx: commands.Context):
         await ctx.send(embed=definir_info())
 
-    @commands.hybrid_command(name="help_korea", description="Lista de comandos")
-    async def help_korea(self, ctx: commands.Context):
-        embed = discord.Embed(
-            title="Comandos del Bot de Korea",
-            color=0x00AAFF,
-        )
-        categorias = {
-            "General": "ping, saludar, info, help_korea",
-            "Diversión": "8ball, dado, moneda, choose, meme, rick",
-            "Juegos": "adivina, pokeranking, trivia",
-            "Voz": "join, leave, rr, aloe",
-            "Música": (
-                "play, queue, skip, pause, resume, stop, clearqueue, remove, "
-                "shuffle, loop, nowplaying, volume"
-            ),
-            "Utilidad": "userinfo, serverinfo, avatar, poll, recordatorio",
-            "Moderación": "clear, kick, ban, timeout, say",
+    @commands.hybrid_command(name="help", description="Lista de comandos con descripción")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def help_cmd(self, ctx: commands.Context):
+        prefix = self.bot.config.prefix
+
+        COG_LABELS = {
+            "General": "⚙️ General",
+            "Music": "🎵 Música",
+            "Lyrics": "🎤 Letras",
+            "Birthdays": "🎂 Cumpleaños",
+            "Voice": "🔊 Voz",
+            "Fun": "🎲 Diversión",
+            "Games": "🎮 Juegos",
+            "Utility": "🛠️ Utilidad",
+            "Moderation": "🔨 Moderación",
         }
-        for nombre, valor in categorias.items():
-            embed.add_field(name=nombre, value=valor, inline=False)
-        embed.set_footer(
-            text=f"Prefix: {self.bot.config.prefix} • también disponibles como /comando"
-        )
+
+        def _fmt(name: str, sig: str, desc: str, indent: str = "") -> str:
+            usage = f"{prefix}{name}" + (f" {sig}" if sig else "")
+            return f"{indent}`{usage}` — {desc}"
+
+        embed = discord.Embed(title="📖 Comandos del Bot de Korea", color=0x00AAFF)
+
+        for cog_name, label in COG_LABELS.items():
+            cog = self.bot.cogs.get(cog_name)
+            if not cog:
+                continue
+            lines = []
+            for cmd in sorted(cog.get_commands(), key=lambda c: c.name):
+                if cmd.hidden:
+                    continue
+                if isinstance(cmd, commands.Group):
+                    lines.append(_fmt(cmd.name, "", cmd.description or ""))
+                    for sub in sorted(cmd.commands, key=lambda c: c.name):
+                        if sub.hidden:
+                            continue
+                        lines.append(
+                            _fmt(
+                                f"{cmd.name} {sub.name}", sub.signature, sub.description or "", "  "
+                            )
+                        )
+                else:
+                    lines.append(_fmt(cmd.name, cmd.signature, cmd.description or ""))
+            if lines:
+                value = "\n".join(lines)
+                if len(value) > 1024:
+                    value = value[:1021] + "..."
+                embed.add_field(name=label, value=value, inline=False)
+
+        embed.set_footer(text=f"Prefix: {prefix} • también disponibles como /comando")
         await ctx.send(embed=embed)
 
 
