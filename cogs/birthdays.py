@@ -29,6 +29,18 @@ def _save(data: dict) -> None:
     BIRTHDAY_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def _next_occurrence(month: int, day: int, today: date) -> date:
+    """Devuelve la próxima fecha válida para el cumpleaños, gestionando el 29/02."""
+    for year in range(today.year, today.year + 5):
+        try:
+            bd = date(year, month, day)
+            if bd >= today:
+                return bd
+        except ValueError:
+            continue
+    raise ValueError(f"No se encontró fecha válida para {month:02d}-{day:02d}")
+
+
 class Birthdays(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -46,6 +58,7 @@ class Birthdays(commands.Cog):
         return self._data[key]
 
     @commands.hybrid_group(name="cumple", description="Gestión de cumpleaños")
+    @commands.guild_only()
     async def cumple(self, ctx: commands.Context):
         pass
 
@@ -89,9 +102,7 @@ class Birthdays(commands.Cog):
             month, day = int(mmdd[:2]), int(mmdd[3:])
             member = ctx.guild.get_member(int(user_id_str))
             name = member.display_name if member else f"<@{user_id_str}>"
-            bd = date(today.year, month, day)
-            if bd < today:
-                bd = date(today.year + 1, month, day)
+            bd = _next_occurrence(month, day, today)
             days_left = (bd - today).days
             entries.append((days_left, day, month, name))
 

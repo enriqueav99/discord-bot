@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 import cogs.birthdays as bd_module
-from cogs.birthdays import _load, _save
+from cogs.birthdays import _load, _next_occurrence, _save
 
 
 @pytest.fixture()
@@ -42,7 +42,19 @@ def test_load_handles_corrupt_file(tmp_birthday_file):
 )
 def test_days_until_birthday(mmdd, today, expected_days):
     month, day = int(mmdd[:2]), int(mmdd[3:])
-    bd = date(today.year, month, day)
-    if bd < today:
-        bd = date(today.year + 1, month, day)
+    bd = _next_occurrence(month, day, today)
     assert (bd - today).days == expected_days
+
+
+@pytest.mark.parametrize(
+    "month, day, today, expected_year",
+    [
+        (2, 29, date(2025, 3, 1), 2028),  # año no bisiesto, ya pasó → 2028
+        (2, 29, date(2028, 2, 29), 2028),  # hoy mismo en año bisiesto → 2028
+        (2, 29, date(2028, 3, 1), 2032),  # año bisiesto pero ya pasó → 2032
+        (2, 29, date(2025, 1, 1), 2028),  # año no bisiesto, aún no ha pasado → 2028
+    ],
+)
+def test_next_occurrence_leap_day(month, day, today, expected_year):
+    bd = _next_occurrence(month, day, today)
+    assert bd == date(expected_year, 2, 29)
