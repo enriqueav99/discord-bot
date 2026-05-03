@@ -135,6 +135,7 @@ class General(commands.Cog):
     @commands.hybrid_command(name="invite", description="Genera un link para invitar al bot")
     async def invite(self, ctx: commands.Context):
         perms = discord.Permissions(
+            view_channel=True,
             send_messages=True,
             embed_links=True,
             attach_files=True,

@@ -128,7 +128,7 @@ class Birthdays(commands.Cog):
             guild = self.bot.get_guild(int(guild_id_str))
             if not guild:
                 continue
-            canal = self.bot.get_channel(self.bot.config.id_canal_principal)
+            canal = guild.get_channel(self.bot.config.id_canal_principal)
             if not canal:
                 continue
 
