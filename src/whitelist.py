@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-_WHITELIST_FILE = Path(__file__).parent.parent / "whitelist.json"
+_DATA_DIR = Path(os.getenv("BOT_DATA_DIR", str(Path(__file__).parent.parent)))
+_WHITELIST_FILE = _DATA_DIR / "whitelist.json"
 
 
 def _load() -> list[int]:

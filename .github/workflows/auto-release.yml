@@ -1,0 +1,76 @@
+name: auto-release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determinar tipo de bump
+        id: bump
+        run: |
+          labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          if echo "$labels" | jq -e '.[] | select(. == "major")' > /dev/null 2>&1; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif echo "$labels" | jq -e '.[] | select(. == "minor")' > /dev/null 2>&1; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif echo "$labels" | jq -e '.[] | select(. == "patch")' > /dev/null 2>&1; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Obtener último tag semver
+        if: steps.bump.outputs.type != 'none'
+        id: tag
+        run: |
+          latest=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "latest=${latest:-0.0.0}" >> "$GITHUB_OUTPUT"
+
+      - name: Calcular nueva versión
+        if: steps.bump.outputs.type != 'none'
+        id: version
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.tag.outputs.latest }}"
+          case "${{ steps.bump.outputs.type }}" in
+            major) new="$((major + 1)).0.0" ;;
+            minor) new="${major}.$((minor + 1)).0" ;;
+            patch) new="${major}.${minor}.$((patch + 1))" ;;
+          esac
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+
+      - name: Crear release
+        if: steps.bump.outputs.type != 'none'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.version.outputs.new }}" \
+            --title "${{ steps.version.outputs.new }}" \
+            --generate-notes \
+            --repo "${{ github.repository }}"
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "### 🏷️ Auto-release"
+            if [ "${{ steps.bump.outputs.type }}" = "none" ]; then
+              echo "Sin label \`major\`, \`minor\` o \`patch\` — no se creó release."
+            else
+              echo "- Bump: **${{ steps.bump.outputs.type }}**"
+              echo "- Anterior: \`${{ steps.tag.outputs.latest }}\`"
+              echo "- Nueva: \`${{ steps.version.outputs.new }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import date
 from pathlib import Path
 
@@ -13,7 +14,8 @@ from discord.ext import commands, tasks
 
 log = logging.getLogger("discord.birthdays")
 
-BIRTHDAY_FILE = Path("birthdays.json")
+_DATA_DIR = Path(os.getenv("BOT_DATA_DIR", "."))
+BIRTHDAY_FILE = _DATA_DIR / "birthdays.json"
 
 
 def _load() -> dict:
