@@ -27,7 +27,7 @@ from src.config import BotConfig
 class _BotForTest(commands.Bot):
     def __init__(self, config: BotConfig):
         intents = discord.Intents.all()
-        super().__init__(command_prefix=config.prefix, intents=intents)
+        super().__init__(command_prefix=config.prefix, intents=intents, help_command=None)
         self.config = config
 
     async def setup_hook(self) -> None:
