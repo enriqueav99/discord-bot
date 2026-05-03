@@ -10,6 +10,7 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import discord
 import yt_dlp
@@ -68,6 +69,13 @@ def _needs_resolve(url: str) -> bool:
     return "youtube.com/watch" in url or "youtu.be/" in url or "music.youtube.com/watch" in url
 
 
+def _extract_video_id(url: str) -> str | None:
+    try:
+        return parse_qs(urlparse(url).query).get("v", [None])[0]
+    except Exception:
+        return None
+
+
 class LoopMode(Enum):
     OFF = "off"
     TRACK = "track"
@@ -119,6 +127,7 @@ class GuildPlayer:
         self._task: asyncio.Task | None = None
         self._idle_seconds = 0
         self._lock = asyncio.Lock()
+        self.autoplay: bool = False
 
     async def start(self):
         async with self._lock:
@@ -128,6 +137,43 @@ class GuildPlayer:
     def voice(self) -> discord.VoiceClient | None:
         guild = self.bot.get_guild(self.guild_id)
         return guild.voice_client if guild else None
+
+    async def _autoplay_fetch(self, seed: Track) -> list[Track]:
+        """Obtiene canciones relacionadas de un YouTube Mix para autoplay."""
+        if not seed.webpage_url:
+            return []
+        video_id = _extract_video_id(seed.webpage_url)
+        if not video_id:
+            return []
+
+        mix_url = f"https://www.youtube.com/watch?v={video_id}&list=RD{video_id}"
+        loop = asyncio.get_running_loop()
+
+        def _run():
+            with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
+                return ydl.extract_info(mix_url, download=False)
+
+        try:
+            info = await asyncio.wait_for(loop.run_in_executor(None, _run), timeout=20)
+        except Exception:
+            log.warning("Autoplay: fallo obteniendo mix para %s", video_id)
+            return []
+
+        if not info or not info.get("entries"):
+            return []
+
+        tracks: list[Track] = []
+        for entry in info["entries"]:
+            if not entry:
+                continue
+            if _extract_video_id(entry.get("url", "") or "") == video_id:
+                continue  # saltar el seed
+            track = _info_to_track(entry, "autoplay", seed.text_channel_id)
+            if track:
+                tracks.append(track)
+            if len(tracks) >= 5:
+                break
+        return tracks
 
     async def _resolve_url(self, url: str) -> str | None:
         """Obtiene el streaming URL directo para un vídeo de YouTube."""
@@ -160,7 +206,15 @@ class GuildPlayer:
             if not vc or not vc.is_connected():
                 return
             if not self.queue and self.loop_mode != LoopMode.TRACK:
-                return
+                if self.autoplay and self.current:
+                    new_tracks = await self._autoplay_fetch(self.current)
+                    if new_tracks:
+                        self.queue.extend(new_tracks)
+                        log.info("Autoplay: añadidas %d canciones", len(new_tracks))
+                    else:
+                        return
+                else:
+                    return
 
             if self.loop_mode == LoopMode.TRACK and self.current:
                 track = self.current
@@ -368,8 +422,9 @@ class Music(commands.Cog):
                 value=lista + extra,
                 inline=False,
             )
+        ap = "on" if player.autoplay else "off"
         embed.set_footer(
-            text=f"Loop: {player.loop_mode.value} • Volumen: {int(player.volume * 100)}%"
+            text=f"Loop: {player.loop_mode.value} • Volumen: {int(player.volume * 100)}% • Autoplay: {ap}"
         )
         await ctx.send(embed=embed)
 
@@ -468,6 +523,15 @@ class Music(commands.Cog):
         player.loop_mode = mode
         emoji = {"off": "▶️", "track": "🔂", "queue": "🔁"}[mode.value]
         await ctx.send(f"{emoji} Loop: **{mode.value}**")
+
+    @commands.hybrid_command(
+        name="autoplay", description="Activa/desactiva el autoplay al vaciar la cola"
+    )
+    async def autoplay_cmd(self, ctx: commands.Context):
+        player = self.get_player(ctx.guild.id)
+        player.autoplay = not player.autoplay
+        state = "activado 🟢" if player.autoplay else "desactivado 🔴"
+        await ctx.send(f"🔀 Autoplay {state}.")
 
     @commands.hybrid_command(name="nowplaying", description="Canción actual con detalles")
     async def nowplaying(self, ctx: commands.Context):

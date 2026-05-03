@@ -48,13 +48,17 @@ Todos los comandos funcionan tanto con prefijo (`<ping`) como con slash (`/ping`
 | Diversión | `8ball`, `dado`, `moneda`, `choose`, `meme`, `rick` |
 | Juegos | `adivina` (Pokémon), `trivia` |
 | Voz | `join`, `leave`, `rr`, `aloe` |
-| Música | `play`, `queue`, `skip`, `pause`, `resume`, `stop`, `nowplaying`, `volume` |
+| Música | `play`, `queue`, `skip`, `pause`, `resume`, `stop`, `clearqueue`, `remove`, `shuffle`, `loop`, `nowplaying`, `volume`, `autoplay` |
+| Letras | `lyrics` |
 | Utilidad | `userinfo`, `serverinfo`, `avatar`, `poll`, `recordatorio` |
 | Moderación | `clear`, `kick`, `ban`, `timeout`, `say` |
 
 ## Funcionalidades destacadas
 
 - **Cola de música por servidor** con auto-disconnect tras 2 minutos sin gente
+- **Autoplay**: al vaciarse la cola encola automáticamente canciones relacionadas vía YouTube Mix
+- **Letras** (`lyrics`) con búsqueda por título o canción actual, paginado automático
+- **Recordatorios** (`recordatorio`) con formato `10m`, `1h30m`, `2d` — avisa por DM
 - **Slash commands** sincronizados al inicio
 - **Healthcheck en Docker** vía `healthcheck.py`
 - **Logs rotativos** + salida a stdout (visible en `docker logs`)

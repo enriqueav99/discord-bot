@@ -1,4 +1,14 @@
-from cogs.music import LoopMode, Track, _format_duration, _info_to_track, _track_embed
+import pytest
+
+from cogs.music import (
+    LoopMode,
+    Track,
+    _extract_video_id,
+    _format_duration,
+    _info_to_track,
+    _needs_resolve,
+    _track_embed,
+)
 
 
 def test_format_duration_none():
@@ -65,3 +75,40 @@ def test_loop_mode_values():
     assert LoopMode("off") == LoopMode.OFF
     assert LoopMode("track") == LoopMode.TRACK
     assert LoopMode("queue") == LoopMode.QUEUE
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", True),
+        ("https://youtu.be/dQw4w9WgXcQ", True),
+        ("https://music.youtube.com/watch?v=abc123", True),
+        ("https://manifest.googlevideo.com/very-long-stream-url", False),
+        ("https://rr1---sn-abc.googlevideo.com/videoplayback?id=x", False),
+    ],
+)
+def test_needs_resolve(url, expected):
+    assert _needs_resolve(url) == expected
+
+
+@pytest.mark.parametrize(
+    "url, expected_id",
+    [
+        ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+        ("https://www.youtube.com/watch?v=abc&list=RDabc", "abc"),
+        ("https://not-a-youtube-url.com", None),
+        ("", None),
+    ],
+)
+def test_extract_video_id(url, expected_id):
+    assert _extract_video_id(url) == expected_id
+
+
+def test_info_to_track_uses_webpage_url_as_fallback():
+    track = _info_to_track(
+        {"webpage_url": "https://www.youtube.com/watch?v=abc"},
+        "user",
+        1,
+    )
+    assert track is not None
+    assert track.url == "https://www.youtube.com/watch?v=abc"

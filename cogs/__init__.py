@@ -5,6 +5,7 @@ EXTENSIONS = (
     "cogs.fun",
     "cogs.games",
     "cogs.music",
+    "cogs.lyrics",
     "cogs.voice",
     "cogs.moderation",
     "cogs.utility",
