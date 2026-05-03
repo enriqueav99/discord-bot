@@ -27,7 +27,7 @@ class Events(commands.Cog):
 
         canal = self.bot.get_channel(self.bot.config.id_canal_principal)
         if canal:
-            await canal.send(f"👋 {member.mention} se ha unido al servidor.")
+            await canal.send(f"{member.mention} entró al servidor, ya me jodería.")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
