@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import random
+import time
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
@@ -128,6 +129,7 @@ class GuildPlayer:
         self._idle_seconds = 0
         self._lock = asyncio.Lock()
         self.autoplay: bool = False
+        self.started_at: float | None = None
 
     async def start(self):
         async with self._lock:
@@ -241,6 +243,7 @@ class GuildPlayer:
 
                 source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTS)
                 source = discord.PCMVolumeTransformer(source, volume=self.volume)
+                self.started_at = time.monotonic()
                 vc.play(source, after=lambda e: self.bot.loop.call_soon_threadsafe(self._next.set))
 
                 channel = self.bot.get_channel(track.text_channel_id)
@@ -595,7 +598,20 @@ class Music(commands.Cog):
         if not player or not player.current:
             await ctx.send("No hay nada reproduciéndose.")
             return
-        await ctx.send(embed=_track_embed(player.current, title="🎧 Sonando ahora", color=0x1DB954))
+        track = player.current
+        embed = _track_embed(track, title="🎧 Sonando ahora", color=0x1DB954)
+        if track.duration and player.started_at is not None:
+            elapsed = int(time.monotonic() - player.started_at)
+            elapsed = min(elapsed, track.duration)
+            pct = elapsed / track.duration
+            filled = int(pct * 15)
+            bar = "▓" * filled + "░" * (15 - filled)
+            embed.add_field(
+                name="Progreso",
+                value=f"`{bar}` {_format_duration(elapsed)} / {_format_duration(track.duration)}",
+                inline=False,
+            )
+        await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="volume", description="Volumen 0-200")
     @app_commands.describe(nivel="Volumen entre 0 y 200")
@@ -616,19 +632,18 @@ class Music(commands.Cog):
             vc = guild.voice_client
             if not vc or not vc.is_connected():
                 continue
-            humanos = [m for m in vc.channel.members if not m.bot]
-            if not humanos:
-                player = self.players.get(guild.id)
-                if player:
-                    player._idle_seconds += 60
-                    if player._idle_seconds >= 120:
-                        await vc.disconnect(force=False)
-                        player.queue.clear()
-                        player.loop_mode = LoopMode.OFF
-                        player._idle_seconds = 0
+            player = self.players.get(guild.id)
+            if not player:
+                continue
+            if vc.is_playing() or vc.is_paused():
+                player._idle_seconds = 0
             else:
-                player = self.players.get(guild.id)
-                if player:
+                player._idle_seconds += 60
+                if player._idle_seconds >= 900:  # 15 min sin reproducir nada
+                    log.info("Desconectando por inactividad en %s", guild.name)
+                    await vc.disconnect(force=False)
+                    player.queue.clear()
+                    player.loop_mode = LoopMode.OFF
                     player._idle_seconds = 0
 
     @idle_check.before_loop

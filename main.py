@@ -30,6 +30,7 @@ class KoreaBot(commands.Bot):
             help_command=None,
         )
         self.config = config
+        self.start_time = discord.utils.utcnow()
 
     async def setup_hook(self) -> None:
         self.heartbeat.start()
@@ -56,10 +57,30 @@ class KoreaBot(commands.Bot):
 
     async def on_ready(self):
         log.info("Conectado como %s (id=%s)", self.user, self.user.id)
-        canal = self.get_channel(self.config.id_canal_bots)
-        if canal:
+        await self.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.listening, name="/help")
+        )
+        canal_bots = self.get_channel(self.config.id_canal_bots)
+        if canal_bots:
             with contextlib.suppress(discord.HTTPException):
-                await canal.send(f"✅ Conectado como {self.user} y listo.")
+                await canal_bots.send(f"✅ Conectado como {self.user} y listo.")
+        canal_logs = (
+            self.get_channel(self.config.id_canal_logs) if self.config.id_canal_logs else None
+        )
+        if canal_logs:
+            ts = discord.utils.format_dt(discord.utils.utcnow())
+            with contextlib.suppress(discord.HTTPException):
+                await canal_logs.send(f"🟢 Bot iniciado — {self.user} conectado a Discord {ts}")
+
+    async def on_disconnect(self):
+        log.warning("Bot desconectado de Discord")
+        canal_logs = (
+            self.get_channel(self.config.id_canal_logs) if self.config.id_canal_logs else None
+        )
+        if canal_logs:
+            ts = discord.utils.format_dt(discord.utils.utcnow())
+            with contextlib.suppress(discord.HTTPException):
+                await canal_logs.send(f"🔴 Bot desconectado de Discord {ts}")
 
 
 def _ensure_opus() -> None:

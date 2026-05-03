@@ -152,12 +152,12 @@ jobs:
             discord-bot
             automated
 
-      - name: Enable auto-merge
+      - name: Merge PR
         if: steps.cpr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ secrets.SERVER_REPO_PAT }}
         run: |
-          gh pr merge --auto --squash \
+          gh pr merge --squash --admin \
             --repo "${{ env.SERVER_REPO }}" \
             "${{ steps.cpr.outputs.pull-request-number }}"
 
@@ -169,7 +169,7 @@ jobs:
             echo ""
             if [ "${{ steps.cpr.outputs.pull-request-number }}" != "" ]; then
               echo "- PR: ${{ steps.cpr.outputs.pull-request-url }}"
-              echo "- Auto-merge: habilitado (se mergea cuando los checks pasen)"
+              echo "- Mergeada automáticamente (privilegio de admin)"
             elif [ "${{ steps.bump.outputs.changed }}" = "false" ]; then
               echo "- Sin cambios en \`${{ env.COMPOSE_PATH }}\` (¿la imagen ya tenía esa versión?)"
             else
