@@ -10,6 +10,8 @@ import aiohttp
 from discord import app_commands
 from discord.ext import commands
 
+from src.http import HttpMixin
+
 log = logging.getLogger("discord.lyrics")
 
 # Limpia sufijos comunes de títulos de YouTube: (Official Video), [HD], (Lyrics), etc.
@@ -25,19 +27,10 @@ def _parse_artist_title(query: str) -> tuple[str, str]:
     return "", clean
 
 
-class Lyrics(commands.Cog):
+class Lyrics(HttpMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._session: aiohttp.ClientSession | None = None
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
-
-    async def cog_unload(self) -> None:
-        if self._session and not self._session.closed:
-            await self._session.close()
 
     async def _fetch(self, artist: str, title: str) -> str | None:
         sess = await self._get_session()

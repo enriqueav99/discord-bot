@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+import os
+from pathlib import Path
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from src.leer_csv import comprobar_whitelist
+from src.whitelist import is_whitelisted
 
 try:
     from gtts import gTTS
@@ -19,6 +22,8 @@ except ImportError:
     _TTS_OK = False
 
 log = logging.getLogger("discord.voice")
+
+_RICKROLL = Path(__file__).parent.parent / "sonidos" / "rickroll.mp3"
 
 
 class Voice(commands.Cog):
@@ -57,7 +62,7 @@ class Voice(commands.Cog):
 
     @commands.hybrid_command(name="rr", description="Reproduce el rickroll")
     async def rr(self, ctx: commands.Context):
-        if not comprobar_whitelist(ctx.author.name):
+        if not is_whitelisted(ctx.author.id):
             await ctx.send("No tienes permiso para usar este comando.")
             return
         vc = ctx.guild.voice_client if ctx.guild else None
@@ -65,7 +70,7 @@ class Voice(commands.Cog):
             await ctx.send("Debo de estar en un canal de voz para usar este comando.")
             return
         try:
-            source = discord.FFmpegPCMAudio("sonidos/rickroll.mp3")
+            source = discord.FFmpegPCMAudio(str(_RICKROLL))
             if vc.is_playing():
                 vc.stop()
             vc.play(source)
@@ -76,6 +81,9 @@ class Voice(commands.Cog):
     @commands.hybrid_command(name="tts", description="Reproduce un texto en el canal de voz")
     @app_commands.describe(texto="Texto a reproducir (máx 200 caracteres)")
     async def tts(self, ctx: commands.Context, *, texto: str):
+        if not is_whitelisted(ctx.author.id):
+            await ctx.send("No tienes permiso para usar este comando.", ephemeral=True)
+            return
         if not _TTS_OK:
             await ctx.send("TTS no disponible (instala `gtts`).")
             return
@@ -101,7 +109,12 @@ class Voice(commands.Cog):
 
         if vc.is_playing():
             vc.stop()
-        vc.play(discord.FFmpegPCMAudio(path))
+
+        def _cleanup(_err: Exception | None) -> None:
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+
+        vc.play(discord.FFmpegPCMAudio(path), after=_cleanup)
         preview = texto[:60] + ("…" if len(texto) > 60 else "")
         await ctx.send(f"🔊 *{preview}*")
 
