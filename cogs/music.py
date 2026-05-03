@@ -20,16 +20,10 @@ log = logging.getLogger("discord.music")
 
 _COOKIES_FILE = Path("/app/cookies.txt")
 
-YDL_OPTS: dict = {
-    "format": "bestaudio/best",
-    "noplaylist": False,
+_COMMON_OPTS: dict = {
     "quiet": True,
     "no_warnings": True,
-    "default_search": "ytsearch",
     "source_address": "0.0.0.0",
-    "extract_flat": False,
-    "sleep_interval": 2,
-    "max_sleep_interval": 5,
     "http_headers": {
         "User-Agent": (
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -39,8 +33,26 @@ YDL_OPTS: dict = {
 }
 
 if _COOKIES_FILE.exists():
-    YDL_OPTS["cookiefile"] = str(_COOKIES_FILE)
+    _COMMON_OPTS["cookiefile"] = str(_COOKIES_FILE)
     log.info("Usando cookies de %s", _COOKIES_FILE)
+
+# Extracción inicial: obtiene metadatos de la playlist/búsqueda rápido,
+# sin descargar streaming URLs para cada entrada.
+YDL_OPTS: dict = {
+    **_COMMON_OPTS,
+    "format": "bestaudio/best",
+    "noplaylist": False,
+    "default_search": "ytsearch",
+    "extract_flat": "in_playlist",
+}
+
+# Resolución individual: obtiene el streaming URL de un solo vídeo antes de reproducirlo.
+YDL_RESOLVE_OPTS: dict = {
+    **_COMMON_OPTS,
+    "format": "bestaudio/best",
+    "noplaylist": True,
+    "extract_flat": False,
+}
 
 FFMPEG_OPTS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
@@ -49,6 +61,11 @@ FFMPEG_OPTS = {
 
 MAX_QUEUE = 200
 MAX_PLAYLIST = 50
+
+
+def _needs_resolve(url: str) -> bool:
+    """True si la URL es una página de YouTube, no un streaming URL directo."""
+    return "youtube.com/watch" in url or "youtu.be/" in url or "music.youtube.com/watch" in url
 
 
 class LoopMode(Enum):
@@ -112,6 +129,30 @@ class GuildPlayer:
         guild = self.bot.get_guild(self.guild_id)
         return guild.voice_client if guild else None
 
+    async def _resolve_url(self, url: str) -> str | None:
+        """Obtiene el streaming URL directo para un vídeo de YouTube."""
+        loop = asyncio.get_running_loop()
+
+        def _run():
+            with yt_dlp.YoutubeDL(YDL_RESOLVE_OPTS) as ydl:
+                info = ydl.extract_info(url, download=False)
+                return info.get("url") if info else None
+
+        try:
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _run),
+                timeout=30,
+            )
+        except TimeoutError:
+            log.warning("Timeout resolviendo URL para %s", url)
+            return None
+        except yt_dlp.utils.DownloadError as e:
+            log.warning("DownloadError resolviendo %s: %s", url, e)
+            return None
+        except Exception:
+            log.exception("Error inesperado resolviendo %s", url)
+            return None
+
     async def _player_loop(self):
         while True:
             self._next.clear()
@@ -130,7 +171,21 @@ class GuildPlayer:
                     self.queue.append(track)
 
             try:
-                source = discord.FFmpegPCMAudio(track.url, **FFMPEG_OPTS)
+                url = track.url
+                if _needs_resolve(url):
+                    log.info("Resolviendo streaming URL para: %s", track.title)
+                    url = await self._resolve_url(url)
+                    if not url:
+                        log.warning("No se pudo resolver %s, saltando", track.title)
+                        channel = self.bot.get_channel(track.text_channel_id)
+                        if channel:
+                            with contextlib.suppress(discord.HTTPException):
+                                await channel.send(
+                                    f"⚠️ No pude obtener el audio de **{track.title}**, saltando."
+                                )
+                        continue
+
+                source = discord.FFmpegPCMAudio(url, **FFMPEG_OPTS)
                 source = discord.PCMVolumeTransformer(source, volume=self.volume)
                 vc.play(source, after=lambda e: self.bot.loop.call_soon_threadsafe(self._next.set))
 
@@ -147,11 +202,14 @@ class GuildPlayer:
 
 
 def _info_to_track(info: dict, requested_by: str, text_channel_id: int) -> Track | None:
-    if not info or not info.get("url"):
+    # Con extract_flat='in_playlist', las entradas de playlist tienen 'url' = página de YouTube.
+    # Con extracción completa (vídeo único o búsqueda resuelta), 'url' = streaming URL.
+    url = info.get("url") or info.get("webpage_url")
+    if not info or not url:
         return None
     return Track(
         title=info.get("title") or "desconocido",
-        url=info["url"],
+        url=url,
         requested_by=requested_by,
         text_channel_id=text_channel_id,
         webpage_url=info.get("webpage_url"),
@@ -185,7 +243,7 @@ class Music(commands.Cog):
         try:
             return await asyncio.wait_for(
                 loop.run_in_executor(None, _run),
-                timeout=60,
+                timeout=30,
             )
         except TimeoutError:
             log.warning("yt_dlp timeout para %s", query)
@@ -237,11 +295,6 @@ class Music(commands.Cog):
 
         player = self.get_player(ctx.guild.id)
 
-        # Distinguir entre 3 casos:
-        # 1. Vídeo único (URL directa): info no tiene entries
-        # 2. Playlist real (URL de playlist): info tiene entries y query es URL
-        # 3. Búsqueda (default_search ytsearch): info tiene entries pero query es texto;
-        #    queremos solo el primer resultado, no encolar las 5 búsquedas.
         is_url = query.strip().lower().startswith(("http://", "https://"))
         is_search = bool(info.get("entries")) and not is_url
 
