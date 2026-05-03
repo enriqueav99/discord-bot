@@ -30,6 +30,7 @@ class KoreaBot(commands.Bot):
             help_command=None,
         )
         self.config = config
+        self.start_time = discord.utils.utcnow()
 
     async def setup_hook(self) -> None:
         self.heartbeat.start()
@@ -56,6 +57,10 @@ class KoreaBot(commands.Bot):
 
     async def on_ready(self):
         log.info("Conectado como %s (id=%s)", self.user, self.user.id)
+        self.start_time = discord.utils.utcnow()
+        await self.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.listening, name="/help")
+        )
         canal = self.get_channel(self.config.id_canal_bots)
         if canal:
             with contextlib.suppress(discord.HTTPException):

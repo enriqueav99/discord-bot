@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import platform
+
 import discord
 from discord.ext import commands
 
@@ -74,6 +76,82 @@ class General(commands.Cog):
                 embed.add_field(name=label, value=value, inline=False)
 
         embed.set_footer(text=f"Prefix: {prefix} • también disponibles como /comando")
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="docs", description="Guía rápida de uso del bot")
+    async def docs(self, ctx: commands.Context):
+        prefix = self.bot.config.prefix
+        embed = discord.Embed(
+            title="📚 Guía del Bot de Korea",
+            description=(
+                f"Los comandos funcionan como slash (`/comando`) "
+                f"o con prefijo (`{prefix}comando`).\n"
+                "Usa `/help` para ver la lista completa con parámetros."
+            ),
+            color=0x00AAFF,
+        )
+        embed.add_field(
+            name="🎵 Música",
+            value="`play`, `playnext`, `queue`, `skip`, `loop`, `shuffle`, `autoplay`, `nowplaying`, `lyrics`",
+            inline=False,
+        )
+        embed.add_field(name="🎮 Juegos", value="`adivina`, `trivia`, `pokeranking`", inline=False)
+        embed.add_field(
+            name="🎂 Cumpleaños", value="`cumple set`, `cumple del`, `cumple lista`", inline=False
+        )
+        embed.add_field(
+            name="🛠️ Utilidad",
+            value="`poll`, `recordatorio`, `userinfo`, `serverinfo`, `avatar`",
+            inline=False,
+        )
+        embed.add_field(
+            name="🔨 Moderación", value="`kick`, `ban`, `timeout`, `clear`", inline=False
+        )
+        embed.add_field(
+            name="🔗 Código fuente",
+            value="[github.com/enriqueav99/discord-bot](https://github.com/enriqueav99/discord-bot)",
+            inline=False,
+        )
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="stats", description="Estadísticas del bot")
+    async def stats(self, ctx: commands.Context):
+        uptime = discord.utils.utcnow() - self.bot.start_time
+        days = uptime.days
+        hours, rem = divmod(uptime.seconds, 3600)
+        minutes = rem // 60
+        guilds = len(self.bot.guilds)
+        users = sum(g.member_count or 0 for g in self.bot.guilds)
+
+        embed = discord.Embed(title="📊 Estadísticas", color=0x00AAFF)
+        embed.add_field(name="Servidores", value=str(guilds), inline=True)
+        embed.add_field(name="Usuarios", value=str(users), inline=True)
+        embed.add_field(name="Latencia", value=f"{round(self.bot.latency * 1000)} ms", inline=True)
+        embed.add_field(name="Uptime", value=f"{days}d {hours}h {minutes}m", inline=True)
+        embed.add_field(name="discord.py", value=discord.__version__, inline=True)
+        embed.add_field(name="Python", value=platform.python_version(), inline=True)
+        await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name="invite", description="Genera un link para invitar al bot")
+    async def invite(self, ctx: commands.Context):
+        perms = discord.Permissions(
+            send_messages=True,
+            embed_links=True,
+            attach_files=True,
+            read_message_history=True,
+            manage_messages=True,
+            connect=True,
+            speak=True,
+            kick_members=True,
+            ban_members=True,
+            moderate_members=True,
+        )
+        url = discord.utils.oauth_url(self.bot.user.id, permissions=perms)
+        embed = discord.Embed(
+            title="🔗 Invitar al bot",
+            description=f"[Haz clic aquí para añadir el Bot de Korea a tu servidor]({url})",
+            color=0x00AAFF,
+        )
         await ctx.send(embed=embed)
 
 
