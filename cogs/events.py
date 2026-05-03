@@ -18,13 +18,13 @@ class Events(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         canal = self.bot.get_channel(self.bot.config.id_canal_principal)
         if canal:
-            await canal.send(f"{member.mention} entró al servidor, ya me joderia.")
+            await canal.send(f"👋 {member.mention} se ha unido al servidor.")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         canal = self.bot.get_channel(self.bot.config.id_canal_principal)
         if canal:
-            await canal.send(f"**{member}** se ha ido. Una menos.")
+            await canal.send(f"**{member}** ha abandonado el servidor.")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: Exception):

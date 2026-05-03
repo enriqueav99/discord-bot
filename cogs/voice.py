@@ -43,12 +43,12 @@ class Voice(commands.Cog):
             await vc.disconnect(force=False)
             await ctx.send("Adiós.")
         else:
-            await ctx.send("No estoy en un canal de voz, no me molestes o llamo a Tomás.")
+            await ctx.send("No estoy en ningún canal de voz.")
 
     @commands.hybrid_command(name="rr", description="Reproduce el rickroll")
     async def rr(self, ctx: commands.Context):
         if not comprobar_whitelist(ctx.author.name):
-            await ctx.send("Lo siento, te jodes, no tienes permiso para usar este comando.")
+            await ctx.send("No tienes permiso para usar este comando.")
             return
         vc = ctx.guild.voice_client if ctx.guild else None
         if vc is None:
@@ -66,7 +66,7 @@ class Voice(commands.Cog):
     @commands.hybrid_command(name="aloe", description="Foto de la cámara aloe")
     async def aloe(self, ctx: commands.Context):
         if not comprobar_whitelist(ctx.author.name):
-            await ctx.send("Lo siento, te jodes, no tienes permiso para usar este comando.")
+            await ctx.send("No tienes permiso para usar este comando.")
             return
         cam = self.bot.config.cam_device
         if not cam:

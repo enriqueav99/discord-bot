@@ -58,9 +58,7 @@ class KoreaBot(commands.Bot):
         canal = self.get_channel(self.config.id_canal_bots)
         if canal:
             with contextlib.suppress(discord.HTTPException):
-                await canal.send(
-                    f"Conectado como {self.user}, listo para ser utilizado, como ella hizo conmigo"
-                )
+                await canal.send(f"✅ Conectado como {self.user} y listo.")
 
 
 def _ensure_opus() -> None:

@@ -18,7 +18,7 @@ class General(commands.Cog):
 
     @commands.hybrid_command(name="saludar", description="Saludo del bot")
     async def saludar(self, ctx: commands.Context):
-        await ctx.send("Hola, que viva la saltisima trinidad, aqui el admin abuse no existe")
+        await ctx.send("¡Hola!")
 
     @commands.hybrid_command(name="info", description="Información del bot")
     async def info(self, ctx: commands.Context):
