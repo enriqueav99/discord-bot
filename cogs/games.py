@@ -14,6 +14,8 @@ import discord
 from discord.ext import commands
 from PIL import Image
 
+from src.http import HttpMixin
+
 POKEAPI = "https://pokeapi.co/api/v2"
 MAX_POKEMON_ID = 1025  # Gen 1–9
 
@@ -59,7 +61,7 @@ def obtener_silueta(imagen_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
-class Games(commands.Cog):
+class Games(HttpMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         # ranking[guild_id][user_id] = puntos
@@ -68,24 +70,16 @@ class Games(commands.Cog):
         self._pokemon_cache: dict[int, tuple[dict, dict, bytes]] = {}
         self._session: aiohttp.ClientSession | None = None
 
-    async def cog_unload(self):
-        if self._session and not self._session.closed:
-            await self._session.close()
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
-
     async def _fetch_pokemon(self, pokemon_id: int) -> tuple[dict, dict, bytes] | None:
         """Devuelve (pokemon, species, sprite_bytes). Cachea para no machacar PokeAPI."""
         if pokemon_id in self._pokemon_cache:
             return self._pokemon_cache[pokemon_id]
 
         s = await self._get_session()
+        timeout = aiohttp.ClientTimeout(total=10)
 
         async def _json(url: str) -> dict:
-            async with s.get(url, timeout=10) as r:
+            async with s.get(url, timeout=timeout) as r:
                 return await r.json()
 
         try:
@@ -102,7 +96,7 @@ class Games(commands.Cog):
         if not sprite_url:
             return None
         try:
-            async with s.get(sprite_url, timeout=10) as r:
+            async with s.get(sprite_url, timeout=timeout) as r:
                 sprite_bytes = await r.read()
         except (TimeoutError, aiohttp.ClientError):
             return None
@@ -251,10 +245,11 @@ class Games(commands.Cog):
     @commands.cooldown(1, 15, commands.BucketType.user)
     async def trivia(self, ctx: commands.Context):
         try:
-            async with (
-                aiohttp.ClientSession() as s,
-                s.get("https://opentdb.com/api.php?amount=1&type=multiple", timeout=10) as resp,
-            ):
+            session = await self._get_session()
+            async with session.get(
+                "https://opentdb.com/api.php?amount=1&type=multiple",
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
                 data = await resp.json()
         except (TimeoutError, aiohttp.ClientError):
             await ctx.send("La API de trivia no responde.")

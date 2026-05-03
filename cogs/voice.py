@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+import os
+from pathlib import Path
 
 import discord
 from discord import app_commands
@@ -19,6 +22,8 @@ except ImportError:
     _TTS_OK = False
 
 log = logging.getLogger("discord.voice")
+
+_RICKROLL = Path(__file__).parent.parent / "sonidos" / "rickroll.mp3"
 
 
 class Voice(commands.Cog):
@@ -65,7 +70,7 @@ class Voice(commands.Cog):
             await ctx.send("Debo de estar en un canal de voz para usar este comando.")
             return
         try:
-            source = discord.FFmpegPCMAudio("sonidos/rickroll.mp3")
+            source = discord.FFmpegPCMAudio(str(_RICKROLL))
             if vc.is_playing():
                 vc.stop()
             vc.play(source)
@@ -101,7 +106,12 @@ class Voice(commands.Cog):
 
         if vc.is_playing():
             vc.stop()
-        vc.play(discord.FFmpegPCMAudio(path))
+
+        def _cleanup(_err: Exception | None) -> None:
+            with contextlib.suppress(OSError):
+                os.unlink(path)
+
+        vc.play(discord.FFmpegPCMAudio(path), after=_cleanup)
         preview = texto[:60] + ("…" if len(texto) > 60 else "")
         await ctx.send(f"🔊 *{preview}*")
 

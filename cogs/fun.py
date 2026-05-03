@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import random
+from pathlib import Path
 
 import aiohttp
 import discord
 from discord import app_commands
 from discord.ext import commands
+
+from src.http import HttpMixin
 
 _8BALL_RESPONSES = [
     "Sí, sin duda.",
@@ -24,20 +27,13 @@ _8BALL_RESPONSES = [
     "Concéntrate y vuelve a preguntar.",
 ]
 
+_RIC_IMG = Path(__file__).parent.parent / "img" / "ric.jpg"
 
-class Fun(commands.Cog):
+
+class Fun(HttpMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._session: aiohttp.ClientSession | None = None
-
-    async def cog_unload(self):
-        if self._session and not self._session.closed:
-            await self._session.close()
-
-    async def session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
 
     @commands.hybrid_command(name="8ball", description="Pregunta a la bola mágica")
     @app_commands.describe(pregunta="Lo que quieras preguntar")
@@ -69,8 +65,10 @@ class Fun(commands.Cog):
     async def meme(self, ctx: commands.Context):
         await ctx.defer() if ctx.interaction else None
         try:
-            session = await self.session()
-            async with session.get("https://meme-api.com/gimme", timeout=10) as resp:
+            session = await self._get_session()
+            async with session.get(
+                "https://meme-api.com/gimme", timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
                 if resp.status != 200:
                     await ctx.send("No pude obtener un meme ahora mismo.")
                     return
@@ -91,7 +89,7 @@ class Fun(commands.Cog):
             await ctx.send("No encuentro el canal de bots.")
             return
         try:
-            with open("img/ric.jpg", "rb") as f:
+            with _RIC_IMG.open("rb") as f:
                 await canal.send(file=discord.File(f))
             if ctx.channel.id != canal.id:
                 await ctx.send("Enviado al canal de bots.", ephemeral=True)
