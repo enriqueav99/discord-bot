@@ -10,5 +10,6 @@ EXTENSIONS = (
     "cogs.voice",
     "cogs.moderation",
     "cogs.utility",
+    "cogs.whitelist",
     "cogs.events",
 )

@@ -12,7 +12,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from src.leer_csv import comprobar_whitelist
+from src.whitelist import is_whitelisted
 
 try:
     from gtts import gTTS
@@ -62,7 +62,7 @@ class Voice(commands.Cog):
 
     @commands.hybrid_command(name="rr", description="Reproduce el rickroll")
     async def rr(self, ctx: commands.Context):
-        if not comprobar_whitelist(ctx.author.name):
+        if not is_whitelisted(ctx.author.id):
             await ctx.send("No tienes permiso para usar este comando.")
             return
         vc = ctx.guild.voice_client if ctx.guild else None
@@ -81,6 +81,9 @@ class Voice(commands.Cog):
     @commands.hybrid_command(name="tts", description="Reproduce un texto en el canal de voz")
     @app_commands.describe(texto="Texto a reproducir (máx 200 caracteres)")
     async def tts(self, ctx: commands.Context, *, texto: str):
+        if not is_whitelisted(ctx.author.id):
+            await ctx.send("No tienes permiso para usar este comando.", ephemeral=True)
+            return
         if not _TTS_OK:
             await ctx.send("TTS no disponible (instala `gtts`).")
             return
