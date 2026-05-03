@@ -15,13 +15,14 @@ Usa `/help` en Discord para ver todos los comandos, o `/docs` para una guía rá
 
 | | |
 |---|---|
-| 🎵 **Música** | Cola por servidor, autoplay, `playnext`, shuffle, loop, letras en tiempo real, barra de progreso |
-| 🎮 **Juegos** | Adivina el Pokémon por silueta (con ranking), trivia |
+| 🎵 **Música** | Cola por servidor, autoplay, `playnext`, shuffle, loop, letras en tiempo real, barra de progreso. Se desconecta solo tras 15 min de inactividad. |
+| 🎮 **Juegos** | Adivina el Pokémon por silueta (con ranking), trivia *(adivina requiere whitelist)* |
 | 🎂 **Cumpleaños** | Registro por usuario y anuncio automático diario |
 | 🔨 **Moderación** | Kick, ban, timeout y clear con logs de auditoría en canal configurable |
 | 🛠️ **Utilidad** | Recordatorios (`10m`, `1h30m`, `2d`), polls con reacciones, info de usuario/servidor |
-| 🔊 **Voz** | Text-to-speech (Google TTS), rickroll |
+| 🔊 **Voz** | Text-to-speech (Google TTS), rickroll *(requieren whitelist)* |
 | 🎲 **Diversión** | 8ball, dado, moneda, meme, rick |
+| 📋 **Whitelist** | Lista de usuarios con acceso a comandos restringidos; gestionada con `/whitelist` (solo admins) |
 
 ---
 
@@ -42,7 +43,21 @@ Ver `.env.example` para todas las variables disponibles.
 | `DISCORD_BOT_PREFIX` | ❌ | Prefijo (default `<`) |
 | `DISCORD_ID_CANAL_PRINCIPAL` | ✅ | Canal de bienvenidas y cumpleaños |
 | `DISCORD_ID_CANAL_BOTS` | ✅ | Canal de salida del bot |
-| `DISCORD_ID_CANAL_LOGS` | ❌ | Canal de logs de moderación |
+| `DISCORD_ID_CANAL_LOGS` | ❌ | Canal de logs de moderación y eventos del bot |
+
+---
+
+## Whitelist
+
+Algunos comandos (`rr`, `tts`, `adivina`) requieren que el usuario esté en la whitelist. Se gestiona desde Discord con comandos de admin:
+
+```
+/whitelist add @usuario     — añade a la whitelist
+/whitelist remove @usuario  — elimina de la whitelist
+/whitelist list             — muestra la whitelist actual
+```
+
+La whitelist se guarda en `whitelist.json` en el directorio del bot.
 
 ---
 

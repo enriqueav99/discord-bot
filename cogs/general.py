@@ -41,6 +41,7 @@ class General(commands.Cog):
             "Games": "🎮 Juegos",
             "Utility": "🛠️ Utilidad",
             "Moderation": "🔨 Moderación",
+            "Whitelist": "📋 Whitelist",
         }
 
         def _fmt(name: str, sig: str, desc: str, indent: str = "") -> str:
@@ -106,6 +107,11 @@ class General(commands.Cog):
         )
         embed.add_field(
             name="🔨 Moderación", value="`kick`, `ban`, `timeout`, `clear`", inline=False
+        )
+        embed.add_field(
+            name="📋 Whitelist",
+            value="`whitelist add`, `whitelist remove`, `whitelist list` *(solo admins)*",
+            inline=False,
         )
         embed.add_field(
             name="🔗 Código fuente",
