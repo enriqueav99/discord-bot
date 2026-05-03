@@ -52,10 +52,12 @@ Ver `.env.example` para todas las variables disponibles.
 Algunos comandos (`rr`, `tts`, `adivina`) requieren que el usuario esté en la whitelist. Se gestiona desde Discord con comandos de admin:
 
 ```
-/whitelist add @usuario     — añade a la whitelist
-/whitelist remove @usuario  — elimina de la whitelist
-/whitelist list             — muestra la whitelist actual
+<whitelist add @usuario     — añade a la whitelist
+<whitelist remove @usuario  — elimina de la whitelist
+<whitelist list             — muestra la whitelist actual
 ```
+
+También disponibles como slash commands (`/whitelist add`, etc.).
 
 La whitelist se guarda en `whitelist.json` en el directorio del bot.
 
