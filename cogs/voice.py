@@ -1,14 +1,25 @@
-"""Comandos de voz: join, leave, sonidos pregrabados, foto webcam."""
+"""Comandos de voz: join, leave, sonidos pregrabados, foto webcam, tts."""
 
 from __future__ import annotations
 
 import asyncio
+import logging
 import subprocess
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 from src.leer_csv import comprobar_whitelist
+
+try:
+    from gtts import gTTS
+
+    _TTS_OK = True
+except ImportError:
+    _TTS_OK = False
+
+log = logging.getLogger("discord.voice")
 
 
 class Voice(commands.Cog):
@@ -104,6 +115,38 @@ class Voice(commands.Cog):
             await canal.send(file=discord.File(result))
             if ctx.channel.id != canal.id:
                 await ctx.send("Foto enviada al canal de bots.", ephemeral=True)
+
+    @commands.hybrid_command(name="tts", description="Reproduce un texto en el canal de voz")
+    @app_commands.describe(texto="Texto a reproducir (máx 200 caracteres)")
+    async def tts(self, ctx: commands.Context, *, texto: str):
+        if not _TTS_OK:
+            await ctx.send("TTS no disponible (instala `gtts`).")
+            return
+        if len(texto) > 200:
+            await ctx.send("Máximo 200 caracteres.")
+            return
+        vc = ctx.guild.voice_client if ctx.guild else None
+        if vc is None:
+            await ctx.send("El bot no está en un canal de voz.")
+            return
+
+        loop = asyncio.get_running_loop()
+        path = f"/tmp/tts_{ctx.guild.id}.mp3"
+
+        def _generate():
+            gTTS(text=texto, lang="es").save(path)
+
+        try:
+            await loop.run_in_executor(None, _generate)
+        except Exception as e:
+            await ctx.send(f"Error generando TTS: {e}")
+            return
+
+        if vc.is_playing():
+            vc.stop()
+        vc.play(discord.FFmpegPCMAudio(path))
+        preview = texto[:60] + ("…" if len(texto) > 60 else "")
+        await ctx.send(f"🔊 *{preview}*")
 
 
 async def setup(bot: commands.Bot):

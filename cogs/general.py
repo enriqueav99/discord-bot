@@ -24,29 +24,44 @@ class General(commands.Cog):
     async def info(self, ctx: commands.Context):
         await ctx.send(embed=definir_info())
 
-    @commands.hybrid_command(name="help_korea", description="Lista de comandos")
+    @commands.hybrid_command(name="help_korea", description="Lista de comandos con descripción")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def help_korea(self, ctx: commands.Context):
-        embed = discord.Embed(
-            title="Comandos del Bot de Korea",
-            color=0x00AAFF,
-        )
-        categorias = {
-            "General": "ping, saludar, info, help_korea",
-            "Diversión": "8ball, dado, moneda, choose, meme, rick",
-            "Juegos": "adivina, pokeranking, trivia",
-            "Voz": "join, leave, rr, aloe",
-            "Música": (
-                "play, queue, skip, pause, resume, stop, clearqueue, remove, "
-                "shuffle, loop, nowplaying, volume"
-            ),
-            "Utilidad": "userinfo, serverinfo, avatar, poll, recordatorio",
-            "Moderación": "clear, kick, ban, timeout, say",
+        prefix = self.bot.config.prefix
+
+        COG_LABELS = {
+            "General": "⚙️ General",
+            "Music": "🎵 Música",
+            "Lyrics": "🎤 Letras",
+            "Birthdays": "🎂 Cumpleaños",
+            "Voice": "🔊 Voz",
+            "Fun": "🎲 Diversión",
+            "Games": "🎮 Juegos",
+            "Utility": "🛠️ Utilidad",
+            "Moderation": "🔨 Moderación",
         }
-        for nombre, valor in categorias.items():
-            embed.add_field(name=nombre, value=valor, inline=False)
-        embed.set_footer(
-            text=f"Prefix: {self.bot.config.prefix} • también disponibles como /comando"
-        )
+
+        embed = discord.Embed(title="📖 Comandos del Bot de Korea", color=0x00AAFF)
+
+        for cog_name, label in COG_LABELS.items():
+            cog = self.bot.cogs.get(cog_name)
+            if not cog:
+                continue
+            lines = []
+            for cmd in sorted(cog.get_commands(), key=lambda c: c.name):
+                if cmd.hidden:
+                    continue
+                if isinstance(cmd, commands.Group):
+                    for sub in sorted(cmd.commands, key=lambda c: c.name):
+                        desc = sub.description or ""
+                        lines.append(f"`{prefix}{cmd.name} {sub.name}` — {desc}")
+                else:
+                    desc = cmd.description or ""
+                    lines.append(f"`{prefix}{cmd.name}` — {desc}")
+            if lines:
+                embed.add_field(name=label, value="\n".join(lines), inline=False)
+
+        embed.set_footer(text=f"Prefix: {prefix} • también disponibles como /comando")
         await ctx.send(embed=embed)
 
 

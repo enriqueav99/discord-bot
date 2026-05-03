@@ -22,6 +22,7 @@ class BotConfig:
     id_canal_principal: int
     id_canal_bots: int
     cam_device: str | None
+    id_canal_logs: int | None
 
     @classmethod
     def load(cls, variables_path: str = "variables.json") -> BotConfig:
@@ -50,10 +51,12 @@ class BotConfig:
                 "DISCORD_ID_CANAL_BOTS o crea variables.json"
             )
 
+        raw_logs = os.getenv("DISCORD_ID_CANAL_LOGS")
         return cls(
             token=token,
             prefix=prefix,
             id_canal_principal=int(id_canal_principal),
             id_canal_bots=int(id_canal_bots),
             cam_device=os.getenv("DISCORD_BOT_CAM"),
+            id_canal_logs=int(raw_logs) if raw_logs else None,
         )
