@@ -183,7 +183,13 @@ class Music(commands.Cog):
                 return ydl.extract_info(query, download=False)
 
         try:
-            return await loop.run_in_executor(None, _run)
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _run),
+                timeout=60,
+            )
+        except TimeoutError:
+            log.warning("yt_dlp timeout para %s", query)
+            return None
         except yt_dlp.utils.DownloadError as e:
             log.warning("yt_dlp DownloadError: %s", e)
             return None
@@ -200,6 +206,8 @@ class Music(commands.Cog):
 
         if ctx.interaction:
             await ctx.defer()
+        else:
+            await ctx.message.add_reaction("🔍")
 
         canal_voz = ctx.author.voice.channel
         if ctx.voice_client is None:
@@ -218,7 +226,11 @@ class Music(commands.Cog):
         elif ctx.voice_client.channel != canal_voz:
             await ctx.voice_client.move_to(canal_voz)
 
+        log.info("play solicitado por %s: %s", ctx.author, query)
         info = await self._extract(query)
+        if not ctx.interaction:
+            with contextlib.suppress(discord.HTTPException):
+                await ctx.message.remove_reaction("🔍", ctx.me)
         if not info:
             await ctx.send("No pude obtener el audio. Puede ser privado o restringido.")
             return
