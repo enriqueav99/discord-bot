@@ -24,9 +24,9 @@ class General(commands.Cog):
     async def info(self, ctx: commands.Context):
         await ctx.send(embed=definir_info())
 
-    @commands.hybrid_command(name="help_korea", description="Lista de comandos con descripción")
+    @commands.hybrid_command(name="help", description="Lista de comandos con descripción")
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def help_korea(self, ctx: commands.Context):
+    async def help_cmd(self, ctx: commands.Context):
         prefix = self.bot.config.prefix
 
         COG_LABELS = {
@@ -41,6 +41,10 @@ class General(commands.Cog):
             "Moderation": "🔨 Moderación",
         }
 
+        def _fmt(name: str, sig: str, desc: str, indent: str = "") -> str:
+            usage = f"{prefix}{name}" + (f" {sig}" if sig else "")
+            return f"{indent}`{usage}` — {desc}"
+
         embed = discord.Embed(title="📖 Comandos del Bot de Korea", color=0x00AAFF)
 
         for cog_name, label in COG_LABELS.items():
@@ -52,14 +56,22 @@ class General(commands.Cog):
                 if cmd.hidden:
                     continue
                 if isinstance(cmd, commands.Group):
+                    lines.append(_fmt(cmd.name, "", cmd.description or ""))
                     for sub in sorted(cmd.commands, key=lambda c: c.name):
-                        desc = sub.description or ""
-                        lines.append(f"`{prefix}{cmd.name} {sub.name}` — {desc}")
+                        if sub.hidden:
+                            continue
+                        lines.append(
+                            _fmt(
+                                f"{cmd.name} {sub.name}", sub.signature, sub.description or "", "  "
+                            )
+                        )
                 else:
-                    desc = cmd.description or ""
-                    lines.append(f"`{prefix}{cmd.name}` — {desc}")
+                    lines.append(_fmt(cmd.name, cmd.signature, cmd.description or ""))
             if lines:
-                embed.add_field(name=label, value="\n".join(lines), inline=False)
+                value = "\n".join(lines)
+                if len(value) > 1024:
+                    value = value[:1021] + "..."
+                embed.add_field(name=label, value=value, inline=False)
 
         embed.set_footer(text=f"Prefix: {prefix} • también disponibles como /comando")
         await ctx.send(embed=embed)

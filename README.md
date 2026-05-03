@@ -44,7 +44,7 @@ Todos los comandos funcionan tanto con prefijo (`<ping`) como con slash (`/ping`
 
 | Categoría | Comandos |
 |---|---|
-| General | `ping`, `saludar`, `info`, `help_korea` |
+| General | `ping`, `saludar`, `info`, `help` |
 | Diversión | `8ball`, `dado`, `moneda`, `choose`, `meme`, `rick` |
 | Juegos | `adivina` (Pokémon), `trivia` |
 | Voz | `join`, `leave`, `rr`, `aloe` |
