@@ -125,6 +125,7 @@ class Harness:
         author.joined_at = discord.utils.utcnow()
         dj_role = MagicMock()
         dj_role.name = "DJ"
+        dj_role.mention = "@DJ"
         author.roles = [guild.default_role, dj_role]
         author.display_avatar = MagicMock()
         author.display_avatar.url = "https://avatar.test/x.png"

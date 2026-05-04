@@ -105,7 +105,10 @@ class KoreaBot(commands.Bot):
 
     async def _app_command_check(self, interaction: discord.Interaction) -> bool:
         command = interaction.command
-        if command and getattr(getattr(command, "binding", None), "qualified_name", None) == "Moderation":
+        if (
+            command
+            and getattr(getattr(command, "binding", None), "qualified_name", None) == "Moderation"
+        ):
             return True
         if self._has_dj_role(interaction.user):
             return True
