@@ -123,7 +123,10 @@ class Harness:
         author.color = discord.Color.default()
         author.created_at = discord.utils.utcnow()
         author.joined_at = discord.utils.utcnow()
-        author.roles = [guild.default_role]
+        dj_role = MagicMock()
+        dj_role.name = "DJ"
+        dj_role.mention = "@DJ"
+        author.roles = [guild.default_role, dj_role]
         author.display_avatar = MagicMock()
         author.display_avatar.url = "https://avatar.test/x.png"
         author.voice = None
@@ -177,6 +180,7 @@ async def bot():
         id_canal_principal=1,
         id_canal_bots=2,
         id_canal_logs=None,
+        dj_role_name="DJ",
     )
     b = _BotForTest(config)
     await b._async_setup_hook()
