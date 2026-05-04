@@ -1,4 +1,4 @@
-# Bot de Korea
+# Bot de Discord
 
 [![CI](https://github.com/enriqueav99/discord-bot/actions/workflows/test.yml/badge.svg)](https://github.com/enriqueav99/discord-bot/actions/workflows/test.yml)
 [![Lint](https://github.com/enriqueav99/discord-bot/actions/workflows/lint.yml/badge.svg)](https://github.com/enriqueav99/discord-bot/actions/workflows/lint.yml)
