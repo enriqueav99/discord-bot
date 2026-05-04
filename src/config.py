@@ -22,6 +22,7 @@ class BotConfig:
     id_canal_principal: int
     id_canal_bots: int
     id_canal_logs: int | None
+    dj_role_name: str
 
     @classmethod
     def load(cls, variables_path: str = "variables.json") -> BotConfig:
@@ -51,10 +52,15 @@ class BotConfig:
             )
 
         raw_logs = os.getenv("DISCORD_ID_CANAL_LOGS")
+        dj_role_name = os.getenv("DISCORD_DJ_ROLE")
+
+        if not dj_role_name:
+            raise RuntimeError("DISCORD_DJ_ROLE no está definido en el entorno")
         return cls(
             token=token,
             prefix=prefix,
             id_canal_principal=int(id_canal_principal),
             id_canal_bots=int(id_canal_bots),
             id_canal_logs=int(raw_logs) if raw_logs else None,
+            dj_role_name=dj_role_name,
         )

@@ -31,6 +31,18 @@ class KoreaBot(commands.Bot):
         )
         self.config = config
         self.start_time = discord.utils.utcnow()
+        self.dj_role_name = config.dj_role_name
+
+    def _is_moderation_command(self, command: commands.Command | None) -> bool:
+        return bool(command and getattr(command.cog, "qualified_name", None) == "Moderation")
+
+    def _has_dj_role(self, member: discord.abc.User | discord.Member | None) -> bool:
+        if not isinstance(member, discord.Member):
+            return False
+        return any(role.name == self.dj_role_name for role in member.roles)
+
+    def _dj_role_error(self) -> str:
+        return f"❌ Necesitas el rol **{self.dj_role_name}** para usar este comando."
 
     async def setup_hook(self) -> None:
         self.heartbeat.start()
@@ -81,6 +93,32 @@ class KoreaBot(commands.Bot):
             ts = discord.utils.format_dt(discord.utils.utcnow())
             with contextlib.suppress(discord.HTTPException):
                 await canal_logs.send(f"🔴 Bot desconectado de Discord {ts}")
+
+    async def bot_check(self, ctx: commands.Context) -> bool:
+        if self._is_moderation_command(ctx.command):
+            return True
+        if self._has_dj_role(ctx.author):
+            return True
+        raise commands.CheckFailure(self._dj_role_error())
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        command = interaction.command
+        if command and getattr(getattr(command, "binding", None), "qualified_name", None) == "Moderation":
+            return True
+        if self._has_dj_role(interaction.user):
+            return True
+        message = self._dj_role_error()
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+        return False
+
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send(str(error), ephemeral=True)
+            return
+        await super().on_command_error(ctx, error)
 
 
 def _ensure_opus() -> None:

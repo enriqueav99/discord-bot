@@ -44,6 +44,7 @@ Ver `.env.example` para todas las variables disponibles.
 | `DISCORD_ID_CANAL_PRINCIPAL` | ✅ | Canal de bienvenidas y cumpleaños |
 | `DISCORD_ID_CANAL_BOTS` | ✅ | Canal de salida del bot |
 | `DISCORD_ID_CANAL_LOGS` | ❌ | Canal de logs de moderación y eventos del bot |
+| `DISCORD_DJ_ROLE` | ✅ | Rol requerido para usar todos los comandos salvo moderación |
 
 ---
 

@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      - DISCORD_DJ_ROLE=${DISCORD_DJ_ROLE}
     volumes:
       - ./variables.json:/app/variables.json:ro
       - ./img:/app/img
