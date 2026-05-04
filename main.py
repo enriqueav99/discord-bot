@@ -116,7 +116,10 @@ class KoreaBot(commands.Bot):
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CheckFailure):
-            await ctx.send(str(error), ephemeral=True)
+            if ctx.interaction:
+                await ctx.send(str(error), ephemeral=True)
+            else:
+                await ctx.send(str(error))
             return
         await super().on_command_error(ctx, error)
 
