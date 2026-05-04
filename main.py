@@ -45,6 +45,8 @@ class KoreaBot(commands.Bot):
         return f"❌ Necesitas el rol **{self.dj_role_name}** para usar este comando."
 
     async def setup_hook(self) -> None:
+        self.add_check(self._prefix_command_check)
+        self.tree.add_check(self._app_command_check)
         self.heartbeat.start()
         for ext in EXTENSIONS:
             try:
@@ -94,14 +96,14 @@ class KoreaBot(commands.Bot):
             with contextlib.suppress(discord.HTTPException):
                 await canal_logs.send(f"🔴 Bot desconectado de Discord {ts}")
 
-    async def bot_check(self, ctx: commands.Context) -> bool:
+    async def _prefix_command_check(self, ctx: commands.Context) -> bool:
         if self._is_moderation_command(ctx.command):
             return True
         if self._has_dj_role(ctx.author):
             return True
         raise commands.CheckFailure(self._dj_role_error())
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    async def _app_command_check(self, interaction: discord.Interaction) -> bool:
         command = interaction.command
         if command and getattr(getattr(command, "binding", None), "qualified_name", None) == "Moderation":
             return True
