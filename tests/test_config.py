@@ -40,3 +40,21 @@ def test_config_missing_channels(monkeypatch):
     monkeypatch.delenv("DISCORD_ID_CANAL_BOTS", raising=False)
     with pytest.raises(RuntimeError, match="canales"):
         BotConfig.load(variables_path="missing.json")
+
+
+def test_config_required_role(monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "tok")
+    monkeypatch.setenv("DISCORD_ID_CANAL_PRINCIPAL", "111")
+    monkeypatch.setenv("DISCORD_ID_CANAL_BOTS", "222")
+    monkeypatch.setenv("DISCORD_REQUIRED_ROLE", "DJ")
+    cfg = BotConfig.load(variables_path="missing.json")
+    assert cfg.required_role == "DJ"
+
+
+def test_config_required_role_defaults_none(monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "tok")
+    monkeypatch.setenv("DISCORD_ID_CANAL_PRINCIPAL", "111")
+    monkeypatch.setenv("DISCORD_ID_CANAL_BOTS", "222")
+    monkeypatch.delenv("DISCORD_REQUIRED_ROLE", raising=False)
+    cfg = BotConfig.load(variables_path="missing.json")
+    assert cfg.required_role is None

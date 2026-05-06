@@ -11,8 +11,7 @@ def definir_info():
     embed.add_field(name="Versión", value="0.3.0", inline=False)
     embed.add_field(
         name="Descripción",
-        value="Bot koreano para que por fin alguien ponga orden aquí. "
-        "Algunas funciones tienen whitelist.",
+        value="Bot koreano para que por fin alguien ponga orden aquí.",
         inline=False,
     )
     embed.set_footer(text="Usa el bot con responsabilidad")

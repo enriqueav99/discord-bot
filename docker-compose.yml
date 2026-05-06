@@ -8,14 +8,13 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      BOT_DATA_DIR: /app/data
     volumes:
       - ./variables.json:/app/variables.json:ro
       - ./img:/app/img
       - ./sonidos:/app/sonidos:ro
-      - ./whitelist.csv:/app/whitelist.csv:ro
-    devices:
-      # Descomenta si quieres usar la cámara:
-      # - "/dev/video0:/dev/video0"
+      - bot-data:/app/data
     healthcheck:
       test: ["CMD", "python", "healthcheck.py"]
       interval: 60s
@@ -27,3 +26,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  bot-data:
