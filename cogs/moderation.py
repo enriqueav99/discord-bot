@@ -2,13 +2,38 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+import json
+import logging
+import os
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from cogs.utility import parse_duration
+
+log = logging.getLogger("discord.moderation")
+
+_DATA_DIR = Path(os.getenv("BOT_DATA_DIR", "."))
+_WARNS_FILE = _DATA_DIR / "warns.json"
+
+
+def _load_warns() -> dict:
+    if _WARNS_FILE.exists():
+        try:
+            return json.loads(_WARNS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            log.warning("No se pudo leer %s", _WARNS_FILE)
+    return {}
+
+
+def _save_warns(data: dict) -> None:
+    try:
+        _WARNS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        log.error("No se pudo guardar warns.json", exc_info=True)
 
 
 def _log_embed(
@@ -35,6 +60,7 @@ def _log_embed(
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self._warns: dict = _load_warns()
 
     def _log_canal(self) -> discord.TextChannel | None:
         canal_id = self.bot.config.id_canal_logs
@@ -151,11 +177,104 @@ class Moderation(commands.Cog):
             await ctx.message.delete()
             await ctx.channel.send(texto)
 
+    # ── /warn ────────────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="warn", description="Advierte a un miembro ⚠️")
+    @commands.has_permissions(manage_messages=True)
+    @commands.guild_only()
+    @app_commands.describe(miembro="Miembro a advertir", razon="Motivo de la advertencia")
+    async def warn(
+        self,
+        ctx: commands.Context,
+        miembro: discord.Member,
+        *,
+        razon: str | None = None,
+    ):
+        if miembro.bot:
+            await ctx.send("No se puede advertir a un bot.", ephemeral=True)
+            return
+        gk, uk = str(ctx.guild.id), str(miembro.id)
+        entry = {
+            "reason": razon or "sin razón",
+            "mod_id": ctx.author.id,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+        self._warns.setdefault(gk, {}).setdefault(uk, []).append(entry)
+        _save_warns(self._warns)
+        count = len(self._warns[gk][uk])
+        await ctx.send(
+            f"⚠️ {miembro.mention} advertido. Total: **{count}** warn(s). Razón: {razon or '—'}"
+        )
+        log_ch = self._log_canal()
+        if log_ch:
+            await log_ch.send(
+                embed=_log_embed(
+                    action=f"Warn #{count}",
+                    color=0xF39C12,
+                    mod=ctx.author,
+                    target=miembro,
+                    reason=razon,
+                )
+            )
+
+    # ── /infractions ─────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="infractions", description="Historial de warns de un miembro")
+    @commands.has_permissions(manage_messages=True)
+    @commands.guild_only()
+    async def infractions(self, ctx: commands.Context, miembro: discord.Member):
+        gk, uk = str(ctx.guild.id), str(miembro.id)
+        warns = self._warns.get(gk, {}).get(uk, [])
+        if not warns:
+            await ctx.send(f"{miembro.mention} no tiene advertencias.", ephemeral=True)
+            return
+        embed = discord.Embed(
+            title=f"⚠️ Infracciones de {miembro.display_name}",
+            color=0xF39C12,
+        )
+        for i, w in enumerate(warns, 1):
+            mod = ctx.guild.get_member(w["mod_id"])
+            mod_name = mod.display_name if mod else f"<mod {w['mod_id']}>"
+            ts = w["timestamp"][:10]
+            embed.add_field(
+                name=f"#{i} — {ts}",
+                value=f"**Razón:** {w['reason']}\n**Mod:** {mod_name}",
+                inline=False,
+            )
+        await ctx.send(embed=embed, ephemeral=True)
+
+    # ── /clearwarns ──────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="clearwarns", description="Limpia todos los warns de un miembro")
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
+    async def clearwarns(self, ctx: commands.Context, miembro: discord.Member):
+        gk, uk = str(ctx.guild.id), str(miembro.id)
+        if not self._warns.get(gk, {}).get(uk):
+            await ctx.send(f"{miembro.mention} no tiene advertencias.", ephemeral=True)
+            return
+        self._warns[gk].pop(uk, None)
+        _save_warns(self._warns)
+        await ctx.send(f"✅ Warns de {miembro.mention} eliminados.")
+        log_ch = self._log_canal()
+        if log_ch:
+            await log_ch.send(
+                embed=_log_embed(
+                    action="Clear warns",
+                    color=0x2ECC71,
+                    mod=ctx.author,
+                    target=miembro,
+                )
+            )
+
     @kick.error
     @ban.error
     @timeout.error
     @clear.error
     @say.error
+    @warn.error
+    @infractions.error
+    @clearwarns.error
     async def perm_error(self, ctx: commands.Context, error: Exception):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("No tienes permisos para usar este comando.", ephemeral=True)
