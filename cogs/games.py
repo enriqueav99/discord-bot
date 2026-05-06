@@ -17,7 +17,7 @@ from PIL import Image
 from src.http import HttpMixin
 
 POKEAPI = "https://pokeapi.co/api/v2"
-MAX_POKEMON_ID = 1025  # Gen 1–9
+MAX_POKEMON_ID = 493  # Gen 1–4
 
 TYPE_COLORS = {
     "normal": 0xA8A77A,
@@ -161,7 +161,7 @@ class Games(HttpMixin, commands.Cog):
             color=0xFFCB05,
         )
         embed.set_image(url="attachment://silueta.png")
-        embed.set_footer(text=f"{self._generacion(species)} • Pokémon #{pokemon['id']}")
+        embed.set_footer(text=self._generacion(species))
         await ctx.send(
             embed=embed, file=discord.File(BytesIO(silueta_bytes), filename="silueta.png")
         )
