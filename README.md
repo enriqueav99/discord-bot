@@ -16,13 +16,13 @@ Usa `/help` en Discord para ver todos los comandos, o `/docs` para una guía rá
 | | |
 |---|---|
 | 🎵 **Música** | Cola por servidor, autoplay, `playnext`, shuffle, loop, letras en tiempo real, barra de progreso. Se desconecta solo tras 15 min de inactividad. |
-| 🎮 **Juegos** | Adivina el Pokémon por silueta (con ranking), trivia *(adivina requiere whitelist)* |
+| 🎮 **Juegos** | Adivina el Pokémon por silueta gen 1–4 (con ranking), trivia |
 | 🎂 **Cumpleaños** | Registro por usuario y anuncio automático diario |
 | 🔨 **Moderación** | Kick, ban, timeout y clear con logs de auditoría en canal configurable |
 | 🛠️ **Utilidad** | Recordatorios (`10m`, `1h30m`, `2d`), polls con reacciones, info de usuario/servidor |
-| 🔊 **Voz** | Text-to-speech (Google TTS), rickroll *(requieren whitelist)* |
+| 🔊 **Voz** | Text-to-speech (Google TTS), rickroll |
 | 🎲 **Diversión** | 8ball, dado, moneda, meme, rick |
-| 📋 **Whitelist** | Lista de usuarios con acceso a comandos restringidos; gestionada con `/whitelist` (solo admins) |
+| 🎰 **Casino** | Ruleta europea con apuestas múltiples y cantidades por apuesta, tragaperras, doble o nada. Fichas persistentes por servidor, recarga cada 6h, ranking. |
 
 ---
 
@@ -44,20 +44,8 @@ Ver `.env.example` para todas las variables disponibles.
 | `DISCORD_ID_CANAL_PRINCIPAL` | ✅ | Canal de bienvenidas y cumpleaños |
 | `DISCORD_ID_CANAL_BOTS` | ✅ | Canal de salida del bot |
 | `DISCORD_ID_CANAL_LOGS` | ❌ | Canal de logs de moderación y eventos del bot |
-
----
-
-## Whitelist
-
-Algunos comandos (`rr`, `tts`, `adivina`) requieren que el usuario esté en la whitelist. Se gestiona desde Discord con comandos de admin:
-
-```
-/whitelist add @usuario     — añade a la whitelist
-/whitelist remove @usuario  — elimina de la whitelist
-/whitelist list             — muestra la whitelist actual
-```
-
-La whitelist se guarda en `whitelist.json` en el directorio del bot.
+| `DISCORD_REQUIRED_ROLE` | ❌ | Nombre del rol de Discord necesario para usar el bot (admins siempre pasan) |
+| `BOT_DATA_DIR` | ❌ | Directorio donde se guardan `fichas.json` y otros datos persistentes (default `.`) |
 
 ---
 

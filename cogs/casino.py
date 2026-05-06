@@ -26,6 +26,10 @@ _RECARGA = 500
 _COOLDOWN_RECARGA_H = 6
 _MAX_APUESTAS = 8
 
+# Tragaperras — símbolos ordenados de más a menos frecuente
+_SLOTS = ["🍒", "🍒", "🍒", "🍋", "🍋", "🍊", "🍊", "🍇", "🔔", "💎", "7️⃣"]
+_SLOT_MULT = {"🍒": 3, "🍋": 5, "🍊": 8, "🍇": 12, "🔔": 20, "💎": 40, "7️⃣": 75}
+
 # Orden real de la ruleta europea (sentido horario)
 _WHEEL = [
     0,
@@ -102,22 +106,53 @@ def _wheel_display(numero: int) -> str:
     return "  ".join(parts)
 
 
-def _parse_apuestas(texto: str) -> tuple[list[tuple[str, int | None]], list[str]]:
+def _parse_apuestas(
+    texto: str, default_cantidad: int
+) -> tuple[list[tuple[str, int | None, int]], list[str]]:
+    """Parse 'bet1 [amount1] bet2 [amount2] …' from a single string.
+
+    An integer ≥ 1 immediately following a bet token is consumed as that
+    bet's per-bet amount; otherwise default_cantidad is used.
+    Returns (valid_bets, invalid_tokens).  Each valid bet is (tipo, objetivo, cantidad).
+    """
     tokens = re.split(r"[\s,]+", texto.strip())
-    valid: list[tuple[str, int | None]] = []
+    valid: list[tuple[str, int | None, int]] = []
     invalid: list[str] = []
     seen: set[tuple[str, int | None]] = set()
+    pending: tuple[str, int | None] | None = None
+
     for token in tokens:
         if not token:
             continue
+        if pending is not None:
+            try:
+                n = int(token)
+                if n >= 1:
+                    key = pending
+                    if key not in seen:
+                        seen.add(key)
+                        valid.append((pending[0], pending[1], n))
+                    pending = None
+                    continue
+                # n == 0: fall through → treat "0" as a new bet on number 0
+                # n < 0: fall through → _parse_apuesta will return None → invalid
+            except ValueError:
+                pass  # not an integer; fall through to bet parsing
         result = _parse_apuesta(token)
-        if result is None:
-            invalid.append(token)
+        if result is not None:
+            if pending is not None:
+                key = pending
+                if key not in seen:
+                    seen.add(key)
+                    valid.append((pending[0], pending[1], default_cantidad))
+            pending = result
         else:
-            key = (result[0], result[1])
-            if key not in seen:
-                seen.add(key)
-                valid.append(result)
+            invalid.append(token)
+    if pending is not None:
+        key = pending
+        if key not in seen:
+            seen.add(key)
+            valid.append((pending[0], pending[1], default_cantidad))
     return valid, invalid
 
 
@@ -176,8 +211,8 @@ class Casino(commands.Cog):
     @commands.hybrid_command(name="ruleta", description="Apuesta en la ruleta del casino 🎰")
     @commands.guild_only()
     @app_commands.describe(
-        apuestas="una o varias apuestas separadas por espacio: rojo negro par 0-36 …",
-        cantidad="Fichas a apostar por cada apuesta (default 100)",
+        apuestas="apuestas con cantidad opcional: 'rojo 50 par bajo 4 20 rojo 0-36 …'",
+        cantidad="Fichas por defecto para apuestas sin cantidad explícita (default 100)",
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ruleta(
@@ -186,12 +221,17 @@ class Casino(commands.Cog):
         apuestas: str,
         cantidad: int = _APUESTA_DEFAULT,
     ):
-        validas, invalidas = _parse_apuestas(apuestas)
+        if cantidad < 1:
+            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
+            return
+
+        validas, invalidas = _parse_apuestas(apuestas, cantidad)
 
         if invalidas:
             await ctx.send(
                 f"Apuesta(s) inválida(s): `{'`, `'.join(invalidas)}`.\n"
-                "Usa: `rojo`, `negro`, `verde`, `par`, `impar`, `alto`, `bajo` o un número **0-36**.",
+                "Usa: `rojo`, `negro`, `verde`, `par`, `impar`, `alto`, `bajo` o un número **0-36**,\n"
+                "opcionalmente seguido de la cantidad: `rojo 50 par bajo 4 20`.",
                 ephemeral=True,
             )
             return
@@ -208,18 +248,15 @@ class Casino(commands.Cog):
             await ctx.send(f"Máximo {_MAX_APUESTAS} apuestas simultáneas.", ephemeral=True)
             return
 
-        if cantidad < 1:
-            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
-            return
-
         guild_id = ctx.guild.id if ctx.guild else 0
         saldo = self._saldo(guild_id, ctx.author.id)
-        coste_total = cantidad * len(validas)
+        coste_total = sum(bet[2] for bet in validas)
 
         if coste_total > saldo:
+            desglose = " + ".join(str(bet[2]) for bet in validas)
             await ctx.send(
                 f"No tienes suficientes fichas. Necesitas **{coste_total}** 🪙 "
-                f"({cantidad} × {len(validas)} apuestas), saldo: **{saldo}** 🪙\n"
+                f"({desglose}), saldo: **{saldo}** 🪙\n"
                 "Usa `/recargar` si te quedaste sin fichas.",
                 ephemeral=True,
             )
@@ -234,16 +271,17 @@ class Casino(commands.Cog):
 
         delta_total = 0
         lineas = []
-        for tipo, objetivo in validas:
+        for tipo, objetivo, bet_cantidad in validas:
             gano, mult = _evaluar(numero, tipo, objetivo)
+            etiqueta = str(objetivo) if tipo == "numero" else tipo
             if gano:
-                delta_total += cantidad * mult
-                etiqueta = objetivo if tipo == "numero" else tipo
-                lineas.append(f"✅ `{etiqueta}` +**{cantidad * mult}** 🪙 (×{mult + 1})")
+                delta_total += bet_cantidad * mult
+                lineas.append(
+                    f"✅ `{etiqueta}` **{bet_cantidad}**×{mult + 1} → +**{bet_cantidad * mult}** 🪙"
+                )
             else:
-                delta_total -= cantidad
-                etiqueta = objetivo if tipo == "numero" else tipo
-                lineas.append(f"❌ `{etiqueta}` -**{cantidad}** 🪙")
+                delta_total -= bet_cantidad
+                lineas.append(f"❌ `{etiqueta}` **{bet_cantidad}** → -**{bet_cantidad}** 🪙")
 
         nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta_total)
 
@@ -326,6 +364,121 @@ class Casino(commands.Cog):
             color=0xFFD700,
         )
         await ctx.send(embed=embed)
+
+    # ── /doble ───────────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="doble", description="Cara o cruz: dobla o pierde tus fichas 🪙")
+    @commands.guild_only()
+    @app_commands.describe(cantidad="Fichas a apostar (default 100)")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def doble(self, ctx: commands.Context, cantidad: int = _APUESTA_DEFAULT):
+        if cantidad < 1:
+            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
+            return
+
+        guild_id = ctx.guild.id if ctx.guild else 0
+        saldo = self._saldo(guild_id, ctx.author.id)
+
+        if cantidad > saldo:
+            await ctx.send(
+                f"No tienes suficientes fichas. Saldo: **{saldo}** 🪙\n"
+                "Usa `/recargar` si te quedaste sin fichas.",
+                ephemeral=True,
+            )
+            return
+
+        msg = await ctx.send("🪙 Lanzando la moneda...")
+        await asyncio.sleep(0.8)
+
+        gano = random.random() < 0.5
+        nuevo_saldo = self._ajustar(guild_id, ctx.author.id, cantidad if gano else -cantidad)
+
+        if gano:
+            embed = discord.Embed(
+                title="🟡 ¡Cara! — ¡Ganaste! 🎉",
+                description=f"+**{cantidad}** 🪙",
+                color=discord.Color.green(),
+            )
+        else:
+            embed = discord.Embed(
+                title="⚫ Cruz — Perdiste",
+                description=f"-**{cantidad}** 🪙",
+                color=discord.Color.red(),
+            )
+        embed.add_field(name="Saldo", value=f"**{nuevo_saldo}** 🪙", inline=True)
+        embed.set_footer(text=ctx.author.display_name)
+        await msg.edit(content=None, embed=embed)
+
+    @doble.error
+    async def doble_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"Espera {error.retry_after:.1f}s.", ephemeral=True)
+
+    # ── /tragaperras ─────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="tragaperras", description="Tira de la palanca 🎰")
+    @commands.guild_only()
+    @app_commands.describe(cantidad="Fichas a apostar (default 100)")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def tragaperras(self, ctx: commands.Context, cantidad: int = _APUESTA_DEFAULT):
+        if cantidad < 1:
+            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
+            return
+
+        guild_id = ctx.guild.id if ctx.guild else 0
+        saldo = self._saldo(guild_id, ctx.author.id)
+
+        if cantidad > saldo:
+            await ctx.send(
+                f"No tienes suficientes fichas. Saldo: **{saldo}** 🪙\n"
+                "Usa `/recargar` si te quedaste sin fichas.",
+                ephemeral=True,
+            )
+            return
+
+        msg = await ctx.send("🎰 Tirando de la palanca...")
+        await asyncio.sleep(0.6)
+
+        for _ in range(2):
+            tmp = [random.choice(_SLOTS) for _ in range(3)]
+            await msg.edit(content=f"[ {tmp[0]} | {tmp[1]} | {tmp[2]} ]  🎰")
+            await asyncio.sleep(0.45)
+
+        a, b, c = [random.choice(_SLOTS) for _ in range(3)]
+        display = f"[ {a} | {b} | {c} ]"
+
+        if a == b == c:
+            mult = _SLOT_MULT[a]
+            delta = cantidad * mult
+            nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta)
+            embed = discord.Embed(
+                title=f"{display}  ¡JACKPOT! 🎉",
+                description=f"+**{delta}** 🪙  (×{mult + 1})",
+                color=0xFFD700,
+            )
+        elif a == b or c in (a, b):
+            nuevo_saldo = self._ajustar(guild_id, ctx.author.id, 0)
+            embed = discord.Embed(
+                title=f"{display}  Par — Empate",
+                description="Recuperas tu apuesta.",
+                color=discord.Color.greyple(),
+            )
+        else:
+            nuevo_saldo = self._ajustar(guild_id, ctx.author.id, -cantidad)
+            embed = discord.Embed(
+                title=f"{display}  Perdiste",
+                description=f"-**{cantidad}** 🪙",
+                color=discord.Color.red(),
+            )
+
+        embed.add_field(name="Saldo", value=f"**{nuevo_saldo}** 🪙", inline=True)
+        embed.set_footer(text=ctx.author.display_name)
+        await msg.edit(content=None, embed=embed)
+
+    @tragaperras.error
+    async def tragaperras_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"Espera {error.retry_after:.1f}s.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
