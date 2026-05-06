@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -190,6 +191,128 @@ def _evaluar(numero: int, tipo: str, objetivo: int | None) -> tuple[bool, int]:
     return False, 0
 
 
+# ── Blackjack helpers ────────────────────────────────────────────────────────
+
+_BJ_RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+_BJ_SUITS = ["♠", "♥", "♦", "♣"]
+
+
+def _bj_carta() -> str:
+    return f"{random.choice(_BJ_RANKS)}{random.choice(_BJ_SUITS)}"
+
+
+def _bj_valor(mano: list[str]) -> int:
+    total, ases = 0, 0
+    for c in mano:
+        rank = c[:-1]
+        if rank == "A":
+            total += 11
+            ases += 1
+        elif rank in ("J", "Q", "K"):
+            total += 10
+        else:
+            total += int(rank)
+    while total > 21 and ases:
+        total -= 10
+        ases -= 1
+    return total
+
+
+def _bj_mano_str(mano: list[str], ocultar_segunda: bool = False) -> str:
+    if ocultar_segunda and len(mano) >= 2:
+        return f"`{mano[0]}`  `🂠`"
+    return "  ".join(f"`{c}`" for c in mano)
+
+
+class _BlackjackView(discord.ui.View):
+    def __init__(
+        self,
+        jugador: list[str],
+        dealer: list[str],
+        cantidad: int,
+        guild_id: int,
+        user_id: int,
+        cog: Casino,
+    ):
+        super().__init__(timeout=60)
+        self.jugador = jugador
+        self.dealer = dealer
+        self.cantidad = cantidad
+        self.guild_id = guild_id
+        self.user_id = user_id
+        self.cog = cog
+        self.message: discord.Message | None = None
+
+    def _embed_juego(self) -> discord.Embed:
+        pj = _bj_valor(self.jugador)
+        embed = discord.Embed(title="🃏 Blackjack", color=0x2C3E50)
+        embed.add_field(name=f"Tu mano ({pj})", value=_bj_mano_str(self.jugador), inline=False)
+        embed.add_field(
+            name="Dealer", value=_bj_mano_str(self.dealer, ocultar_segunda=True), inline=False
+        )
+        embed.set_footer(text=f"Apuesta: {self.cantidad} 🪙  •  Pedir carta o plantarse")
+        return embed
+
+    def _embed_final(self, resultado: str, nuevo_saldo: int) -> discord.Embed:
+        pj = _bj_valor(self.jugador)
+        pd = _bj_valor(self.dealer)
+        match resultado:
+            case "bj":
+                title, color = "🃏 ¡Blackjack! 🎉", discord.Color.gold()
+            case "bust":
+                title, color = f"💥 ¡Te pasaste! ({pj}) — Perdiste", discord.Color.red()
+            case "win":
+                title, color = f"🏆 ¡Ganaste! ({pj} vs {pd}) 🎉", discord.Color.green()
+            case "tie":
+                title, color = f"🤝 Empate ({pj})", discord.Color.greyple()
+            case _:
+                title, color = f"😔 Perdiste ({pj} vs {pd})", discord.Color.red()
+        embed = discord.Embed(title=title, color=color)
+        embed.add_field(name=f"Tu mano ({pj})", value=_bj_mano_str(self.jugador), inline=True)
+        embed.add_field(name=f"Dealer ({pd})", value=_bj_mano_str(self.dealer), inline=True)
+        embed.add_field(name="Saldo", value=f"**{nuevo_saldo}** 🪙", inline=False)
+        embed.set_footer(text=f"Apuesta: {self.cantidad} 🪙")
+        return embed
+
+    async def _terminar(self, interaction: discord.Interaction, resultado: str, delta: int):
+        nuevo_saldo = self.cog._ajustar(self.guild_id, self.user_id, delta)
+        await interaction.response.edit_message(
+            embed=self._embed_final(resultado, nuevo_saldo), view=None
+        )
+        self.stop()
+
+    async def _plantarse_interno(self, interaction: discord.Interaction):
+        while _bj_valor(self.dealer) < 17:
+            self.dealer.append(_bj_carta())
+        pj, pd = _bj_valor(self.jugador), _bj_valor(self.dealer)
+        if pd > 21 or pj > pd:
+            await self._terminar(interaction, "win", self.cantidad)
+        elif pj == pd:
+            await self._terminar(interaction, "tie", 0)
+        else:
+            await self._terminar(interaction, "lose", -self.cantidad)
+
+    @discord.ui.button(label="Pedir carta", style=discord.ButtonStyle.primary, emoji="🃏")
+    async def hit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.jugador.append(_bj_carta())
+        total = _bj_valor(self.jugador)
+        if total > 21:
+            await self._terminar(interaction, "bust", -self.cantidad)
+        elif total == 21:
+            await self._plantarse_interno(interaction)
+        else:
+            await interaction.response.edit_message(embed=self._embed_juego())
+
+    @discord.ui.button(label="Plantarse", style=discord.ButtonStyle.secondary, emoji="✋")
+    async def stand(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._plantarse_interno(interaction)
+
+    async def on_timeout(self):
+        if self.message:
+            with contextlib.suppress(discord.HTTPException):
+                await self.message.edit(view=None)
+
+
 class Casino(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -211,21 +334,16 @@ class Casino(commands.Cog):
     @commands.hybrid_command(name="ruleta", description="Apuesta en la ruleta del casino 🎰")
     @commands.guild_only()
     @app_commands.describe(
-        apuestas="apuestas con cantidad opcional: 'rojo 50 par bajo 4 20 rojo 0-36 …'",
-        cantidad="Fichas por defecto para apuestas sin cantidad explícita (default 100)",
+        apuestas="apuesta [cantidad] … ej: 'negro 50 alto 30 0 20' o 'rojo negro par'",
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ruleta(
         self,
         ctx: commands.Context,
+        *,
         apuestas: str,
-        cantidad: int = _APUESTA_DEFAULT,
     ):
-        if cantidad < 1:
-            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
-            return
-
-        validas, invalidas = _parse_apuestas(apuestas, cantidad)
+        validas, invalidas = _parse_apuestas(apuestas, _APUESTA_DEFAULT)
 
         if invalidas:
             await ctx.send(
@@ -416,7 +534,9 @@ class Casino(commands.Cog):
 
     # ── /tragaperras ─────────────────────────────────────────────────────────
 
-    @commands.hybrid_command(name="tragaperras", description="Tira de la palanca 🎰")
+    @commands.hybrid_command(
+        name="tragaperras", description="Tira de la palanca — cuadrícula 3×3 🎰"
+    )
     @commands.guild_only()
     @app_commands.describe(cantidad="Fichas a apostar (default 100)")
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -436,38 +556,46 @@ class Casino(commands.Cog):
             )
             return
 
+        def _grid(rows: list[list[str]], mark_mid: bool = False) -> str:
+            lines = []
+            for i, row in enumerate(rows):
+                line = f"[ {' | '.join(row)} ]"
+                if mark_mid and i == 1:
+                    line += "  ◀"
+                lines.append(line)
+            return "\n".join(lines)
+
         msg = await ctx.send("🎰 Tirando de la palanca...")
-        await asyncio.sleep(0.6)
-
+        await asyncio.sleep(0.5)
         for _ in range(2):
-            tmp = [random.choice(_SLOTS) for _ in range(3)]
-            await msg.edit(content=f"[ {tmp[0]} | {tmp[1]} | {tmp[2]} ]  🎰")
-            await asyncio.sleep(0.45)
+            tmp = [[random.choice(_SLOTS) for _ in range(3)] for _ in range(3)]
+            await msg.edit(content=_grid(tmp))
+            await asyncio.sleep(0.4)
 
-        a, b, c = [random.choice(_SLOTS) for _ in range(3)]
-        display = f"[ {a} | {b} | {c} ]"
+        grid = [[random.choice(_SLOTS) for _ in range(3)] for _ in range(3)]
+        a, b, c = grid[1]  # middle row determines outcome
 
         if a == b == c:
             mult = _SLOT_MULT[a]
             delta = cantidad * mult
             nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta)
             embed = discord.Embed(
-                title=f"{display}  ¡JACKPOT! 🎉",
-                description=f"+**{delta}** 🪙  (×{mult + 1})",
+                title="¡JACKPOT! 🎉",
+                description=f"{_grid(grid, mark_mid=True)}\n\n+**{delta}** 🪙  (×{mult + 1})",
                 color=0xFFD700,
             )
         elif a == b or c in (a, b):
             nuevo_saldo = self._ajustar(guild_id, ctx.author.id, 0)
             embed = discord.Embed(
-                title=f"{display}  Par — Empate",
-                description="Recuperas tu apuesta.",
+                title="Par — Empate",
+                description=f"{_grid(grid, mark_mid=True)}\n\nRecuperas tu apuesta.",
                 color=discord.Color.greyple(),
             )
         else:
             nuevo_saldo = self._ajustar(guild_id, ctx.author.id, -cantidad)
             embed = discord.Embed(
-                title=f"{display}  Perdiste",
-                description=f"-**{cantidad}** 🪙",
+                title="Perdiste",
+                description=f"{_grid(grid, mark_mid=True)}\n\n-**{cantidad}** 🪙",
                 color=discord.Color.red(),
             )
 
@@ -477,6 +605,55 @@ class Casino(commands.Cog):
 
     @tragaperras.error
     async def tragaperras_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"Espera {error.retry_after:.1f}s.", ephemeral=True)
+
+    # ── /blackjack ───────────────────────────────────────────────────────────
+
+    @commands.hybrid_command(name="blackjack", description="Juega al blackjack contra la banca 🃏")
+    @commands.guild_only()
+    @app_commands.describe(cantidad="Fichas a apostar (default 100)")
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def blackjack(self, ctx: commands.Context, cantidad: int = _APUESTA_DEFAULT):
+        if cantidad < 1:
+            await ctx.send("La apuesta mínima es **1** ficha.", ephemeral=True)
+            return
+
+        guild_id = ctx.guild.id if ctx.guild else 0
+        saldo = self._saldo(guild_id, ctx.author.id)
+
+        if cantidad > saldo:
+            await ctx.send(
+                f"No tienes suficientes fichas. Saldo: **{saldo}** 🪙\n"
+                "Usa `/recargar` si te quedaste sin fichas.",
+                ephemeral=True,
+            )
+            return
+
+        jugador = [_bj_carta(), _bj_carta()]
+        dealer = [_bj_carta(), _bj_carta()]
+
+        # Natural blackjack
+        if _bj_valor(jugador) == 21:
+            delta = int(cantidad * 1.5)
+            nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta)
+            embed = discord.Embed(title="🃏 ¡Blackjack Natural! 🎉", color=discord.Color.gold())
+            embed.add_field(name="Tu mano (21)", value=_bj_mano_str(jugador), inline=True)
+            embed.add_field(
+                name=f"Dealer ({_bj_valor(dealer)})",
+                value=_bj_mano_str(dealer),
+                inline=True,
+            )
+            embed.add_field(name="Ganancia", value=f"+**{delta}** 🪙 (×2.5)", inline=False)
+            embed.add_field(name="Saldo", value=f"**{nuevo_saldo}** 🪙", inline=True)
+            await ctx.send(embed=embed)
+            return
+
+        view = _BlackjackView(jugador, dealer, cantidad, guild_id, ctx.author.id, self)
+        view.message = await ctx.send(embed=view._embed_juego(), view=view)
+
+    @blackjack.error
+    async def blackjack_error(self, ctx: commands.Context, error: Exception):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send(f"Espera {error.retry_after:.1f}s.", ephemeral=True)
 
