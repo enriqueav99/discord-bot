@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import platform
+import re
 
 import discord
 from discord import app_commands
@@ -29,6 +30,13 @@ _COG_LABEL  = {name: label for name, _,     label in _COGS}
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+def _prefix_sig(sig: str) -> str:
+    """Quita los <> de los args requeridos para la versión de prefix.
+    Evita que <prefix<arg>> quede confuso con prefijos como '<'.
+    """
+    return re.sub(r"<([^>]+)>", r"\1", sig)
+
+
 def _cmd_lines(cog: commands.Cog, prefix: str) -> list[str]:
     lines = []
     for cmd in sorted(cog.get_commands(), key=lambda c: c.name):
@@ -43,7 +51,7 @@ def _cmd_lines(cog: commands.Cog, prefix: str) -> list[str]:
                         f"  ↳ `{cmd.name} {sub.name}{sig}` — {sub.description or '—'}"
                     )
         else:
-            sig = f" {cmd.signature}" if cmd.signature else ""
+            sig = f" {_prefix_sig(cmd.signature)}" if cmd.signature else ""
             lines.append(f"`{prefix}{cmd.name}{sig}` — {cmd.description or '—'}")
     return lines
 
@@ -109,7 +117,7 @@ def _detail_embed(cmd: commands.Command | commands.Group, prefix: str) -> discor
             name="Uso",
             value=(
                 f"`/{cmd.qualified_name}{' ' + sig if sig else ''}`\n"
-                f"`{prefix}{cmd.qualified_name}{' ' + sig if sig else ''}`"
+                f"`{prefix}{cmd.qualified_name}{' ' + _prefix_sig(sig) if sig else ''}`"
             ),
             inline=False,
         )
