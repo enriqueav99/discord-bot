@@ -1,14 +1,47 @@
-"""Comandos de utilidad: userinfo, serverinfo, avatar, poll, recordatorio."""
+"""Comandos de utilidad: userinfo, serverinfo, avatar, poll, recordatorio, bug."""
 
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
+import os
 import re
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import discord
 from discord import app_commands
 from discord.ext import commands
+
+log = logging.getLogger("discord.utility")
+
+_DATA_DIR = Path(os.getenv("BOT_DATA_DIR", "."))
+_BUGS_FILE = _DATA_DIR / "bugs.json"
+
+
+def _load_bugs() -> dict:
+    if _BUGS_FILE.exists():
+        try:
+            return json.loads(_BUGS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            log.warning("No se pudo leer %s", _BUGS_FILE)
+    return {}
+
+
+def _save_bugs(data: dict) -> None:
+    try:
+        _BUGS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        log.error("No se pudo guardar bugs.json", exc_info=True)
+
+
+def _next_bug_id(data: dict, guild_id: int) -> int:
+    gk = str(guild_id)
+    data.setdefault(gk, {"count": 0})
+    data[gk]["count"] += 1
+    return data[gk]["count"]
+
 
 _DURATION_RE = re.compile(r"(?P<n>\d+)(?P<u>[smhd])")
 
@@ -34,6 +67,7 @@ def parse_duration(text: str) -> timedelta | None:
 class Utility(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self._bugs: dict = _load_bugs()
 
     @commands.hybrid_command(name="userinfo", description="Información de un usuario")
     @app_commands.describe(miembro="Usuario (default: tú)")
@@ -133,6 +167,63 @@ class Utility(commands.Cog):
             )
         except discord.Forbidden:
             await ctx.channel.send(f"{ctx.author.mention} ⏰ {mensaje}")
+
+    @commands.hybrid_command(name="bug", description="Reporta un bug o problema del bot 🐛")
+    @app_commands.describe(
+        titulo="Resumen breve del problema",
+        descripcion="Descripción detallada (pasos para reproducirlo, qué esperabas, qué pasó)",
+    )
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    async def bug(
+        self,
+        ctx: commands.Context,
+        titulo: str,
+        *,
+        descripcion: str = "Sin descripción adicional.",
+    ):
+        guild_id = ctx.guild.id if ctx.guild else 0
+        bug_id = _next_bug_id(self._bugs, guild_id)
+        _save_bugs(self._bugs)
+
+        now = discord.utils.utcnow()
+        canal_logs_id = self.bot.config.id_canal_logs
+        canal_logs = self.bot.get_channel(canal_logs_id) if canal_logs_id else None
+
+        embed = discord.Embed(
+            title=f"🐛 Bug #{bug_id} — {titulo}",
+            color=0xE74C3C,
+            timestamp=now,
+        )
+        embed.add_field(name="Descripción", value=descripcion, inline=False)
+        embed.add_field(
+            name="Reportado por", value=f"{ctx.author.mention} (`{ctx.author}`)", inline=True
+        )
+        if ctx.guild:
+            embed.add_field(name="Servidor", value=ctx.guild.name, inline=True)
+        if hasattr(ctx.channel, "mention"):
+            embed.add_field(name="Canal", value=ctx.channel.mention, inline=True)
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        embed.set_footer(text=f"Bug #{bug_id} • {ctx.guild.name if ctx.guild else 'DM'}")
+
+        if canal_logs:
+            await canal_logs.send(embed=embed)
+            await ctx.send(
+                f"✅ Bug **#{bug_id}** enviado al canal de logs. ¡Gracias por el reporte!",
+                ephemeral=True,
+            )
+        else:
+            await ctx.send(embed=embed)
+            await ctx.send(
+                f"✅ Bug **#{bug_id}** registrado. (Configura `DISCORD_ID_CANAL_LOGS` para enviarlo a un canal de auditoría.)",
+                ephemeral=True,
+            )
+
+    @bug.error
+    async def bug_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(
+                f"Espera {error.retry_after:.0f}s antes de reportar otro bug.", ephemeral=True
+            )
 
 
 async def setup(bot: commands.Bot):
