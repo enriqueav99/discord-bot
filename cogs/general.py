@@ -14,22 +14,23 @@ from src.info import definir_info
 
 # (cog_name, emoji, label_es)
 _COGS = [
-    ("General",    "⚙️",  "General"),
-    ("Music",      "🎵",  "Música"),
-    ("Lyrics",     "🎤",  "Letras"),
-    ("Birthdays",  "🎂",  "Cumpleaños"),
-    ("Voice",      "🔊",  "Voz"),
-    ("Fun",        "🎲",  "Diversión"),
-    ("Games",      "🎮",  "Juegos"),
-    ("Casino",     "🎰",  "Casino"),
-    ("Utility",    "🛠️",  "Utilidad"),
-    ("Moderation", "🔨",  "Moderación"),
+    ("General", "⚙️", "General"),
+    ("Music", "🎵", "Música"),
+    ("Lyrics", "🎤", "Letras"),
+    ("Birthdays", "🎂", "Cumpleaños"),
+    ("Voice", "🔊", "Voz"),
+    ("Fun", "🎲", "Diversión"),
+    ("Games", "🎮", "Juegos"),
+    ("Casino", "🎰", "Casino"),
+    ("Utility", "🛠️", "Utilidad"),
+    ("Moderation", "🔨", "Moderación"),
 ]
-_COG_EMOJI  = {name: emoji for name, emoji, _     in _COGS}
-_COG_LABEL  = {name: label for name, _,     label in _COGS}
+_COG_EMOJI = {name: emoji for name, emoji, _ in _COGS}
+_COG_LABEL = {name: label for name, _, label in _COGS}
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+
 
 def _prefix_sig(sig: str) -> str:
     """Quita los <> de los args requeridos para la versión de prefix.
@@ -48,9 +49,7 @@ def _cmd_lines(cog: commands.Cog, prefix: str) -> list[str]:
             for sub in sorted(cmd.commands, key=lambda c: c.name):
                 if not sub.hidden:
                     sig = f" {sub.signature}" if sub.signature else ""
-                    lines.append(
-                        f"  ↳ `{cmd.name} {sub.name}{sig}` — {sub.description or '—'}"
-                    )
+                    lines.append(f"  ↳ `{cmd.name} {sub.name}{sig}` — {sub.description or '—'}")
         else:
             sig = f" {_prefix_sig(cmd.signature)}" if cmd.signature else ""
             lines.append(f"`{prefix}{cmd.name}{sig}` — {cmd.description or '—'}")
@@ -72,9 +71,7 @@ def _overview_embed(bot: commands.Bot, prefix: str) -> discord.Embed:
         if not cog:
             continue
         names = [
-            f"`{c.name}`"
-            for c in sorted(cog.get_commands(), key=lambda c: c.name)
-            if not c.hidden
+            f"`{c.name}`" for c in sorted(cog.get_commands(), key=lambda c: c.name) if not c.hidden
         ]
         if names:
             embed.add_field(name=f"{emoji} {label}", value=" ".join(names), inline=True)
@@ -134,14 +131,13 @@ def _detail_embed(cmd: commands.Command | commands.Group, prefix: str) -> discor
             pass
 
     if cmd.aliases:
-        embed.add_field(
-            name="Alias", value=", ".join(f"`{a}`" for a in cmd.aliases), inline=True
-        )
+        embed.add_field(name="Alias", value=", ".join(f"`{a}`" for a in cmd.aliases), inline=True)
     embed.set_footer(text=f"Categoría: {_COG_LABEL.get(cog_name, cog_name)}")
     return embed
 
 
 # ── View ─────────────────────────────────────────────────────────────────────
+
 
 class _HelpSelect(discord.ui.Select):
     def __init__(self, bot: commands.Bot, prefix: str):
@@ -159,9 +155,7 @@ class _HelpSelect(discord.ui.Select):
         if not cog:
             await interaction.response.send_message("Categoría no disponible.", ephemeral=True)
             return
-        await interaction.response.edit_message(
-            embed=_cog_embed(cog, self.values[0], self._prefix)
-        )
+        await interaction.response.edit_message(embed=_cog_embed(cog, self.values[0], self._prefix))
 
 
 class _HelpView(discord.ui.View):
@@ -177,6 +171,7 @@ class _HelpView(discord.ui.View):
 
 
 # ── Cog ──────────────────────────────────────────────────────────────────────
+
 
 class General(commands.Cog):
     def __init__(self, bot: commands.Bot):
