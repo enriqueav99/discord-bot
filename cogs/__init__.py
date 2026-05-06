@@ -1,4 +1,4 @@
-"""Discord cogs del Bot de Korea."""
+"""Discord cogs del Bot de Discord."""
 
 EXTENSIONS = (
     "cogs.general",
@@ -10,6 +10,5 @@ EXTENSIONS = (
     "cogs.voice",
     "cogs.moderation",
     "cogs.utility",
-    "cogs.whitelist",
     "cogs.events",
 )

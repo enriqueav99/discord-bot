@@ -15,7 +15,6 @@ from discord.ext import commands
 from PIL import Image
 
 from src.http import HttpMixin
-from src.whitelist import is_whitelisted
 
 POKEAPI = "https://pokeapi.co/api/v2"
 MAX_POKEMON_ID = 1025  # Gen 1–9
@@ -137,9 +136,6 @@ class Games(HttpMixin, commands.Cog):
     @commands.hybrid_command(name="adivina", description="Adivina el Pokémon de la silueta")
     @commands.cooldown(1, 30, commands.BucketType.channel)
     async def adivina(self, ctx: commands.Context):
-        if not is_whitelisted(ctx.author.id):
-            await ctx.send("No tienes permiso para usar este comando.", ephemeral=True)
-            return
         if ctx.interaction:
             await ctx.defer()
 

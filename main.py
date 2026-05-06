@@ -34,6 +34,26 @@ class KoreaBot(commands.Bot):
 
     async def setup_hook(self) -> None:
         self.heartbeat.start()
+        if self.config.required_role:
+            required = self.config.required_role
+
+            async def _role_check(ctx: commands.Context) -> bool:
+                if ctx.guild is None:
+                    return False
+                if ctx.author.guild_permissions.administrator:
+                    return True
+                role = discord.utils.get(ctx.guild.roles, name=required)
+                if role is None:
+                    log.warning(
+                        "Rol requerido '%s' no encontrado en el servidor %s",
+                        required,
+                        ctx.guild,
+                    )
+                    return False
+                return role in ctx.author.roles
+
+            self.add_check(_role_check)
+            log.info("Check de rol habilitado: '%s'", required)
         for ext in EXTENSIONS:
             try:
                 await self.load_extension(ext)

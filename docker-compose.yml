@@ -12,7 +12,6 @@ services:
       - ./variables.json:/app/variables.json:ro
       - ./img:/app/img
       - ./sonidos:/app/sonidos:ro
-      - ./whitelist.csv:/app/whitelist.csv:ro
     devices:
       # Descomenta si quieres usar la cámara:
       # - "/dev/video0:/dev/video0"

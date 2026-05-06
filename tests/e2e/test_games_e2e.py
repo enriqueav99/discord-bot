@@ -46,7 +46,6 @@ async def test_adivina_acierto(harness, monkeypatch):
     sprite_png = _png_bytes()
     import cogs.games as games_mod
 
-    monkeypatch.setattr(games_mod, "is_whitelisted", lambda uid: True)
     monkeypatch.setattr(games_mod.random, "randint", lambda a, b: 25)
 
     games = harness.bot.get_cog("Games")
