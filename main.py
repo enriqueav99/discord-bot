@@ -102,6 +102,16 @@ class KoreaBot(commands.Bot):
             with contextlib.suppress(discord.HTTPException):
                 await canal_logs.send(f"🔴 Bot desconectado de Discord {ts}")
 
+    async def on_resumed(self):
+        log.info("Sesión de Discord retomada")
+        canal_logs = (
+            self.get_channel(self.config.id_canal_logs) if self.config.id_canal_logs else None
+        )
+        if canal_logs:
+            ts = discord.utils.format_dt(discord.utils.utcnow())
+            with contextlib.suppress(discord.HTTPException):
+                await canal_logs.send(f"🟡 Bot reconectado (sesión retomada) {ts}")
+
 
 def _ensure_opus() -> None:
     if discord.opus.is_loaded():
