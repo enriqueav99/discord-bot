@@ -14,4 +14,5 @@ EXTENSIONS = (
     "cogs.automod",
     "cogs.utility",
     "cogs.events",
+    "cogs.lol",
 )

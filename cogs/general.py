@@ -26,6 +26,7 @@ _COGS = [
     ("Utility", "🛠️", "Utilidad"),
     ("Moderation", "🔨", "Moderación"),
     ("Automod", "🤖", "Automod"),
+    ("LoL", "⚔️", "League of Legends"),
 ]
 _COG_EMOJI = {name: emoji for name, emoji, _ in _COGS}
 _COG_LABEL = {name: label for name, _, label in _COGS}
