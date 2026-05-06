@@ -10,6 +10,7 @@ EXTENSIONS = (
     "cogs.birthdays",
     "cogs.voice",
     "cogs.moderation",
+    "cogs.automod",
     "cogs.utility",
     "cogs.events",
 )
