@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import random
+import re
 from pathlib import Path
 
 import discord
@@ -23,6 +24,7 @@ _FICHAS_INICIALES = 1000
 _APUESTA_DEFAULT = 100
 _RECARGA = 500
 _COOLDOWN_RECARGA_H = 6
+_MAX_APUESTAS = 8
 
 # Orden real de la ruleta europea (sentido horario)
 _WHEEL = [
@@ -100,6 +102,25 @@ def _wheel_display(numero: int) -> str:
     return "  ".join(parts)
 
 
+def _parse_apuestas(texto: str) -> tuple[list[tuple[str, int | None]], list[str]]:
+    tokens = re.split(r"[\s,]+", texto.strip())
+    valid: list[tuple[str, int | None]] = []
+    invalid: list[str] = []
+    seen: set[tuple[str, int | None]] = set()
+    for token in tokens:
+        if not token:
+            continue
+        result = _parse_apuesta(token)
+        if result is None:
+            invalid.append(token)
+        else:
+            key = (result[0], result[1])
+            if key not in seen:
+                seen.add(key)
+                valid.append(result)
+    return valid, invalid
+
+
 def _parse_apuesta(texto: str) -> tuple[str, int | None] | None:
     t = texto.lower().strip()
     if t in ("rojo", "negro", "verde", "par", "impar", "alto", "bajo"):
@@ -155,23 +176,36 @@ class Casino(commands.Cog):
     @commands.hybrid_command(name="ruleta", description="Apuesta en la ruleta del casino 🎰")
     @commands.guild_only()
     @app_commands.describe(
-        apuesta="rojo · negro · verde · par · impar · alto · bajo · o un número (0-36)",
-        cantidad="Fichas a apostar (default 100)",
+        apuestas="una o varias apuestas separadas por espacio: rojo negro par 0-36 …",
+        cantidad="Fichas a apostar por cada apuesta (default 100)",
     )
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def ruleta(
         self,
         ctx: commands.Context,
-        apuesta: str,
+        apuestas: str,
         cantidad: int = _APUESTA_DEFAULT,
     ):
-        parsed = _parse_apuesta(apuesta)
-        if parsed is None:
+        validas, invalidas = _parse_apuestas(apuestas)
+
+        if invalidas:
             await ctx.send(
-                "Apuesta inválida. Usa: `rojo`, `negro`, `verde`, `par`, `impar`, "
+                f"Apuesta(s) inválida(s): `{'`, `'.join(invalidas)}`.\n"
+                "Usa: `rojo`, `negro`, `verde`, `par`, `impar`, `alto`, `bajo` o un número **0-36**.",
+                ephemeral=True,
+            )
+            return
+
+        if not validas:
+            await ctx.send(
+                "Indica al menos una apuesta: `rojo`, `negro`, `verde`, `par`, `impar`, "
                 "`alto`, `bajo` o un número del **0 al 36**.",
                 ephemeral=True,
             )
+            return
+
+        if len(validas) > _MAX_APUESTAS:
+            await ctx.send(f"Máximo {_MAX_APUESTAS} apuestas simultáneas.", ephemeral=True)
             return
 
         if cantidad < 1:
@@ -180,16 +214,16 @@ class Casino(commands.Cog):
 
         guild_id = ctx.guild.id if ctx.guild else 0
         saldo = self._saldo(guild_id, ctx.author.id)
+        coste_total = cantidad * len(validas)
 
-        if cantidad > saldo:
+        if coste_total > saldo:
             await ctx.send(
-                f"No tienes suficientes fichas. Saldo: **{saldo}** 🪙\n"
+                f"No tienes suficientes fichas. Necesitas **{coste_total}** 🪙 "
+                f"({cantidad} × {len(validas)} apuestas), saldo: **{saldo}** 🪙\n"
                 "Usa `/recargar` si te quedaste sin fichas.",
                 ephemeral=True,
             )
             return
-
-        tipo, objetivo = parsed
 
         msg = await ctx.send("🎰 Lanzando la bola...")
         await asyncio.sleep(0.7)
@@ -197,27 +231,36 @@ class Casino(commands.Cog):
         await asyncio.sleep(0.8)
 
         numero = random.randint(0, 36)
-        gano, mult = _evaluar(numero, tipo, objetivo)
-        delta = cantidad * mult if gano else -cantidad
-        nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta)
 
-        if gano:
-            embed = discord.Embed(
-                title=f"{_color_emoji(numero)} {numero} — ¡Ganaste! 🎉",
-                description=_wheel_display(numero),
-                color=discord.Color.green(),
-            )
-            embed.add_field(name="Ganancia", value=f"+**{cantidad * mult}** 🪙", inline=True)
-            embed.add_field(name="Pago", value=f"×{mult + 1}", inline=True)
+        delta_total = 0
+        lineas = []
+        for tipo, objetivo in validas:
+            gano, mult = _evaluar(numero, tipo, objetivo)
+            if gano:
+                delta_total += cantidad * mult
+                etiqueta = objetivo if tipo == "numero" else tipo
+                lineas.append(f"✅ `{etiqueta}` +**{cantidad * mult}** 🪙 (×{mult + 1})")
+            else:
+                delta_total -= cantidad
+                etiqueta = objetivo if tipo == "numero" else tipo
+                lineas.append(f"❌ `{etiqueta}` -**{cantidad}** 🪙")
+
+        nuevo_saldo = self._ajustar(guild_id, ctx.author.id, delta_total)
+
+        if delta_total > 0:
+            titulo = f"{_color_emoji(numero)} {numero} — ¡Ganaste! 🎉"
+            color = discord.Color.green()
+        elif delta_total < 0:
+            titulo = f"{_color_emoji(numero)} {numero} — Perdiste"
+            color = discord.Color.red()
         else:
-            embed = discord.Embed(
-                title=f"{_color_emoji(numero)} {numero} — Perdiste",
-                description=_wheel_display(numero),
-                color=discord.Color.red(),
-            )
-            embed.add_field(name="Pérdida", value=f"-**{cantidad}** 🪙", inline=True)
+            titulo = f"{_color_emoji(numero)} {numero} — Empate"
+            color = discord.Color.greyple()
 
-        embed.add_field(name="Apuesta", value=f"`{apuesta}`", inline=True)
+        embed = discord.Embed(title=titulo, description=_wheel_display(numero), color=color)
+        embed.add_field(name="Resultados", value="\n".join(lineas), inline=False)
+        signo = "+" if delta_total >= 0 else ""
+        embed.add_field(name="Neto", value=f"{signo}**{delta_total}** 🪙", inline=True)
         embed.add_field(name="Saldo", value=f"**{nuevo_saldo}** 🪙", inline=True)
         embed.set_footer(text=ctx.author.display_name)
         await msg.edit(content=None, embed=embed)
