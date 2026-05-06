@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import platform
 import re
 
@@ -171,10 +172,8 @@ class _HelpView(discord.ui.View):
 
     async def on_timeout(self):
         if self.message:
-            try:
+            with contextlib.suppress(discord.HTTPException):
                 await self.message.edit(view=None)
-            except discord.HTTPException:
-                pass
 
 
 # ── Cog ──────────────────────────────────────────────────────────────────────

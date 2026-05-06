@@ -80,14 +80,22 @@ def _parse_apuesta(texto: str) -> tuple[str, int | None] | None:
 
 def _evaluar(numero: int, tipo: str, objetivo: int | None) -> tuple[bool, int]:
     match tipo:
-        case "numero": return numero == objetivo, 35
-        case "rojo":   return numero in _ROJOS, 1
-        case "negro":  return numero not in _ROJOS and numero != 0, 1
-        case "verde":  return numero == 0, 35
-        case "par":    return numero != 0 and numero % 2 == 0, 1
-        case "impar":  return numero != 0 and numero % 2 == 1, 1
-        case "alto":   return 19 <= numero <= 36, 1
-        case "bajo":   return 1 <= numero <= 18, 1
+        case "numero":
+            return numero == objetivo, 35
+        case "rojo":
+            return numero in _ROJOS, 1
+        case "negro":
+            return numero not in _ROJOS and numero != 0, 1
+        case "verde":
+            return numero == 0, 35
+        case "par":
+            return numero != 0 and numero % 2 == 0, 1
+        case "impar":
+            return numero != 0 and numero % 2 == 1, 1
+        case "alto":
+            return 19 <= numero <= 36, 1
+        case "bajo":
+            return 1 <= numero <= 18, 1
     return False, 0
 
 
@@ -110,6 +118,7 @@ class Casino(commands.Cog):
     # ── /ruleta ─────────────────────────────────────────────────────────────
 
     @commands.hybrid_command(name="ruleta", description="Apuesta en la ruleta del casino 🎰")
+    @commands.guild_only()
     @app_commands.describe(
         apuesta="rojo · negro · verde · par · impar · alto · bajo · o un número (0-36)",
         cantidad="Fichas a apostar (default 100)",
@@ -186,6 +195,7 @@ class Casino(commands.Cog):
     # ── /fichas ──────────────────────────────────────────────────────────────
 
     @commands.hybrid_command(name="fichas", description="Consulta tu saldo de fichas 🪙")
+    @commands.guild_only()
     async def fichas_cmd(self, ctx: commands.Context):
         guild_id = ctx.guild.id if ctx.guild else 0
         saldo = self._saldo(guild_id, ctx.author.id)
@@ -197,7 +207,8 @@ class Casino(commands.Cog):
         name="recargar",
         description=f"Recibe {_RECARGA} fichas gratis (cada {_COOLDOWN_RECARGA_H}h) 🎁",
     )
-    @commands.cooldown(1, _COOLDOWN_RECARGA_H * 3600, commands.BucketType.user)
+    @commands.guild_only()
+    @commands.cooldown(1, _COOLDOWN_RECARGA_H * 3600, commands.BucketType.member)
     async def recargar(self, ctx: commands.Context):
         guild_id = ctx.guild.id if ctx.guild else 0
         nuevo = self._ajustar(guild_id, ctx.author.id, _RECARGA)
@@ -216,6 +227,7 @@ class Casino(commands.Cog):
     # ── /ranking_fichas ──────────────────────────────────────────────────────
 
     @commands.hybrid_command(name="ranking_fichas", description="Top de fichas en el servidor 🏆")
+    @commands.guild_only()
     async def ranking_fichas(self, ctx: commands.Context):
         guild_id = ctx.guild.id if ctx.guild else 0
         scores = self._fichas.get(str(guild_id), {})
