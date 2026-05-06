@@ -45,6 +45,9 @@ class Events(commands.Cog):
         if isinstance(error, commands.BadArgument):
             await ctx.send(f"Argumento inválido: {error}")
             return
+        if isinstance(error, commands.CheckFailure):
+            await ctx.send("No tienes el rol necesario para usar este comando.", ephemeral=True)
+            return
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("No tienes permisos para usar este comando.")
             return
