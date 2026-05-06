@@ -3,6 +3,7 @@
 EXTENSIONS = (
     "cogs.general",
     "cogs.fun",
+    "cogs.casino",
     "cogs.games",
     "cogs.music",
     "cogs.lyrics",
