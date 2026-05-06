@@ -18,11 +18,11 @@ Usa `/help` en Discord para ver todos los comandos disponibles.
 | 🎵 **Música** | Cola por servidor, autoplay, `playnext`, shuffle, loop, letras en tiempo real, barra de progreso. Se desconecta solo tras 15 min de inactividad. |
 | 🎮 **Juegos** | Adivina el Pokémon por silueta gen 1–4 (con ranking), trivia |
 | 🎂 **Cumpleaños** | Registro por usuario y anuncio automático diario |
-| 🔨 **Moderación** | Kick, ban, timeout y clear con logs de auditoría en canal configurable |
+| 🔨 **Moderación** | Kick, ban, timeout, clear con logs de auditoría. Warns por usuario (`/warn`, `/infractions`, `/clearwarns`). Automod configurable: palabras prohibidas y límite de menciones. Logging extendido de ediciones, borrados, cambios de nombre/rol, canales e invitaciones. |
 | 🛠️ **Utilidad** | Recordatorios (`10m`, `1h30m`, `2d`), polls con reacciones, info de usuario/servidor |
 | 🔊 **Voz** | Text-to-speech (Google TTS), rickroll |
 | 🎲 **Diversión** | 8ball, dado, moneda, meme, rick |
-| 🎰 **Casino** | Ruleta europea, blackjack (botones interactivos), tragaperras 3×3, doble o nada. Apuestas múltiples con cantidad por apuesta (`negro 50 alto 30`). Fichas persistentes por servidor, recarga cada 6h, ranking. |
+| 🎰 **Casino y Economía** | Ruleta europea, blackjack (botones interactivos), tragaperras 3×3, doble o nada. Apuestas múltiples con cantidad por apuesta (`negro 50 alto 30`). `/trabajo` cada 8h, atracos grupales (`/heist`), tienda con roles y títulos cosméticos. Fichas persistentes por servidor, recarga cada 6h, ranking con títulos. |
 
 ---
 
@@ -49,9 +49,11 @@ Ver `.env.example` para todas las variables disponibles.
 
 ---
 
-## Casino
+## Casino y Economía
 
-Todos los comandos del casino usan fichas virtuales persistentes por servidor. Cada usuario empieza con **1000 fichas** y puede recargar 500 gratis cada 6h con `/recargar`.
+Todos los comandos usan fichas virtuales persistentes por servidor. Cada usuario empieza con **1000 fichas** y puede recargar 500 gratis cada 6h con `/recargar`.
+
+### Juegos
 
 | Comando | Descripción |
 |---|---|
@@ -59,9 +61,46 @@ Todos los comandos del casino usan fichas virtuales persistentes por servidor. C
 | `/blackjack [cantidad]` | Blackjack contra la banca con botones Pedir carta / Plantarse. Blackjack natural paga ×2.5. |
 | `/tragaperras [cantidad]` | Tragaperras 3×3. La fila central determina el resultado: 3 iguales = jackpot (×3–75 según símbolo), par = empate, resto = pierde. |
 | `/doble [cantidad]` | Cara o cruz: doblas o pierdes la apuesta. |
-| `/fichas` | Consulta tu saldo actual de fichas. |
+
+### Economía
+
+| Comando | Descripción |
+|---|---|
+| `/trabajo` | Trabaja en un oficio aleatorio y gana fichas (50–400 🪙). Cooldown de **8h por servidor**. |
+| `/heist <cantidad>` | Inicia un atraco grupal. Los demás tienen **60s** para unirse con `/unirse`. Al finalizar, 50/50 de ganar o perder. |
+| `/unirse [cantidad]` | Únete al atraco activo del servidor. |
+| `/tienda` | Muestra los artículos disponibles en la tienda del servidor. |
+| `/tienda comprar <id>` | Compra un artículo. Los roles se asignan automáticamente y expiran si tienen duración. |
+| `/tienda add_rol <rol> <precio> [dias]` | **[Admin]** Añade un rol a la tienda (`0` días = permanente). |
+| `/tienda add_titulo <titulo> <precio> [dias]` | **[Admin]** Añade un título cosmético que aparece en `/ranking_fichas`. |
+| `/tienda remove <id>` | **[Admin]** Elimina un artículo de la tienda. |
+
+### Fichas
+
+| Comando | Descripción |
+|---|---|
+| `/fichas` | Consulta tu saldo actual. |
 | `/recargar` | Recibe 500 fichas gratis (cooldown 6h por servidor). |
-| `/ranking_fichas` | Top 10 de fichas del servidor. |
+| `/ranking_fichas` | Top 10 del servidor. Los títulos activos se muestran junto al nombre. |
+
+---
+
+## Moderación
+
+| Comando | Descripción |
+|---|---|
+| `/kick <miembro> [razón]` | Expulsa a un miembro. |
+| `/ban <miembro> [razón]` | Banea a un miembro. |
+| `/timeout <miembro> <tiempo> [razón]` | Silencia temporalmente (`10m`, `1h`, `2d`, máx. 28 días). |
+| `/clear <cantidad>` | Borra hasta 100 mensajes recientes. |
+| `/say <texto>` | El bot repite tu mensaje. |
+| `/warn <miembro> [razón]` | Registra un aviso al miembro. |
+| `/infractions <miembro>` | Muestra todos los avisos de un miembro. |
+| `/clearwarns <miembro>` | Borra todos los avisos de un miembro. |
+| `/automod add <palabra>` | Añade una palabra a la lista negra. |
+| `/automod remove <palabra>` | Elimina una palabra de la lista negra. |
+| `/automod list` | Muestra las palabras prohibidas. |
+| `/automod menciones <n>` | Límite máximo de menciones por mensaje (`0` = desactivado). |
 
 ---
 
