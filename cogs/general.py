@@ -22,6 +22,7 @@ _COGS = [
     ("Fun", "🎲", "Diversión"),
     ("Games", "🎮", "Juegos"),
     ("Casino", "🎰", "Casino"),
+    ("Economia", "💼", "Economía"),
     ("Utility", "🛠️", "Utilidad"),
     ("Moderation", "🔨", "Moderación"),
     ("Automod", "🤖", "Automod"),
