@@ -36,6 +36,12 @@ _QUEUE_LABEL = {
     "RANKED_FLEX_SR": "Flex",
 }
 
+_DDRAGON_FALLBACK_VERSION = "14.10.1"
+
+
+class _RiotRateLimited(Exception):
+    """Riot API devolvió 429 — distinguible de 'no encontrado' (None)."""
+
 
 class LoL(HttpMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -43,6 +49,7 @@ class LoL(HttpMixin, commands.Cog):
         self._session = None
         self._api_key: str | None = bot.config.riot_api_key
         self._champions: dict[int, str] = {}
+        self._ddragon_version: str | None = None
 
     async def _riot_get(self, url: str) -> dict | list | None:
         if not self._api_key:
@@ -54,11 +61,13 @@ class LoL(HttpMixin, commands.Cog):
                     return None
                 if r.status == 429:
                     log.warning("Riot API rate limit alcanzado")
-                    return None
+                    raise _RiotRateLimited
                 if r.status != 200:
                     log.warning("Riot API %s → %s", url, r.status)
                     return None
                 return await r.json()
+        except _RiotRateLimited:
+            raise
         except Exception:
             log.exception("Error en petición Riot API: %s", url)
             return None
@@ -74,13 +83,17 @@ class LoL(HttpMixin, commands.Cog):
             log.exception("Error en petición Data Dragon: %s", url)
             return None
 
+    async def _get_ddragon_version(self) -> str:
+        if self._ddragon_version:
+            return self._ddragon_version
+        versions = await self._ddragon_get(f"{_DDRAGON}/api/versions.json")
+        self._ddragon_version = versions[0] if versions else _DDRAGON_FALLBACK_VERSION
+        return self._ddragon_version
+
     async def _load_champions(self) -> dict[int, str]:
         if self._champions:
             return self._champions
-        versions = await self._ddragon_get(f"{_DDRAGON}/api/versions.json")
-        if not versions:
-            return {}
-        version = versions[0]
+        version = await self._get_ddragon_version()
         data = await self._ddragon_get(f"{_DDRAGON}/cdn/{version}/data/en_US/champion.json")
         if not data:
             return {}
@@ -127,6 +140,12 @@ class LoL(HttpMixin, commands.Cog):
             color=discord.Color.red(),
         )
 
+    def _rate_limit_embed(self) -> discord.Embed:
+        return discord.Embed(
+            description="⏳ La Riot API está limitando las peticiones. Inténtalo de nuevo en unos segundos.",
+            color=discord.Color.orange(),
+        )
+
     def _not_found_embed(self, invocador: str) -> discord.Embed:
         return discord.Embed(
             description=f"❌ Invocador `{invocador}` no encontrado en EUW.\nUsa `Nombre#EUW` o el nombre de invocador exacto.",
@@ -143,23 +162,28 @@ class LoL(HttpMixin, commands.Cog):
             return
 
         await ctx.defer()
-        result = await self._resolve(invocador)
-        if not result:
-            await ctx.send(embed=self._not_found_embed(invocador))
+        try:
+            result = await self._resolve(invocador)
+            if not result:
+                await ctx.send(embed=self._not_found_embed(invocador))
+                return
+            summoner, account = result
+
+            entries = (
+                await self._riot_get(f"{_BASE}/lol/league/v4/entries/by-summoner/{summoner['id']}")
+                or []
+            )
+        except _RiotRateLimited:
+            await ctx.send(embed=self._rate_limit_embed())
             return
-        summoner, account = result
 
-        entries = (
-            await self._riot_get(f"{_BASE}/lol/league/v4/entries/by-summoner/{summoner['id']}")
-            or []
-        )
-
+        version = await self._get_ddragon_version()
         embed = discord.Embed(
             title=f"⚔️ {account.get('gameName', summoner['name'])}",
             color=0xC89B3C,
         )
         embed.set_thumbnail(
-            url=f"{_DDRAGON}/cdn/14.10.1/img/profileicon/{summoner['profileIconId']}.png"
+            url=f"{_DDRAGON}/cdn/{version}/img/profileicon/{summoner['profileIconId']}.png"
         )
         embed.add_field(name="Nivel", value=str(summoner["summonerLevel"]), inline=True)
         embed.add_field(name="Servidor", value="EUW", inline=True)
@@ -195,31 +219,35 @@ class LoL(HttpMixin, commands.Cog):
             return
 
         await ctx.defer()
-        result = await self._resolve(invocador)
-        if not result:
-            await ctx.send(embed=self._not_found_embed(invocador))
-            return
-        summoner, account = result
+        try:
+            result = await self._resolve(invocador)
+            if not result:
+                await ctx.send(embed=self._not_found_embed(invocador))
+                return
+            summoner, account = result
 
-        match_ids = await self._riot_get(
-            f"{_BASE_REGION}/lol/match/v5/matches/by-puuid/{summoner['puuid']}/ids?start=0&count=1"
-        )
-        if not match_ids:
-            await ctx.send(
-                embed=discord.Embed(
-                    description="No se encontraron partidas recientes.",
-                    color=discord.Color.orange(),
-                )
+            match_ids = await self._riot_get(
+                f"{_BASE_REGION}/lol/match/v5/matches/by-puuid/{summoner['puuid']}/ids?start=0&count=1"
             )
-            return
+            if not match_ids:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="No se encontraron partidas recientes.",
+                        color=discord.Color.orange(),
+                    )
+                )
+                return
 
-        match = await self._riot_get(f"{_BASE_REGION}/lol/match/v5/matches/{match_ids[0]}")
-        if not match:
-            await ctx.send(
-                embed=discord.Embed(
-                    description="No se pudo obtener la partida.", color=discord.Color.orange()
+            match = await self._riot_get(f"{_BASE_REGION}/lol/match/v5/matches/{match_ids[0]}")
+            if not match:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="No se pudo obtener la partida.", color=discord.Color.orange()
+                    )
                 )
-            )
+                return
+        except _RiotRateLimited:
+            await ctx.send(embed=self._rate_limit_embed())
             return
 
         # Find the participant
@@ -255,11 +283,12 @@ class LoL(HttpMixin, commands.Cog):
         color = discord.Color.green() if won else discord.Color.red()
         resultado = "Victoria 🏆" if won else "Derrota 💀"
 
+        version = await self._get_ddragon_version()
         embed = discord.Embed(
             title=f"⚔️ {account.get('gameName', summoner['name'])} — {resultado}",
             color=color,
         )
-        embed.set_thumbnail(url=f"{_DDRAGON}/cdn/14.10.1/img/champion/{champion}.png")
+        embed.set_thumbnail(url=f"{_DDRAGON}/cdn/{version}/img/champion/{champion}.png")
         embed.add_field(name="Campeón", value=champion, inline=True)
         embed.add_field(name="Modo", value=queue_name, inline=True)
         embed.add_field(name="Duración", value=duration, inline=True)
@@ -280,22 +309,26 @@ class LoL(HttpMixin, commands.Cog):
             return
 
         await ctx.defer()
-        result = await self._resolve(invocador)
-        if not result:
-            await ctx.send(embed=self._not_found_embed(invocador))
-            return
-        summoner, account = result
+        try:
+            result = await self._resolve(invocador)
+            if not result:
+                await ctx.send(embed=self._not_found_embed(invocador))
+                return
+            summoner, account = result
 
-        maestrias = await self._riot_get(
-            f"{_BASE}/lol/champion-mastery/v4/champion-masteries"
-            f"/by-summoner/{summoner['id']}/top?count=5"
-        )
-        if not maestrias:
-            await ctx.send(
-                embed=discord.Embed(
-                    description="No hay datos de maestría.", color=discord.Color.orange()
-                )
+            maestrias = await self._riot_get(
+                f"{_BASE}/lol/champion-mastery/v4/champion-masteries"
+                f"/by-summoner/{summoner['id']}/top?count=5"
             )
+            if not maestrias:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="No hay datos de maestría.", color=discord.Color.orange()
+                    )
+                )
+                return
+        except _RiotRateLimited:
+            await ctx.send(embed=self._rate_limit_embed())
             return
 
         champions = await self._load_champions()
@@ -323,13 +356,17 @@ class LoL(HttpMixin, commands.Cog):
             return
 
         await ctx.defer()
-        data = await self._riot_get(f"{_BASE}/lol/platform/v3/champion-rotations")
-        if not data:
-            await ctx.send(
-                embed=discord.Embed(
-                    description="No se pudo obtener la rotación.", color=discord.Color.orange()
+        try:
+            data = await self._riot_get(f"{_BASE}/lol/platform/v3/champion-rotations")
+            if not data:
+                await ctx.send(
+                    embed=discord.Embed(
+                        description="No se pudo obtener la rotación.", color=discord.Color.orange()
+                    )
                 )
-            )
+                return
+        except _RiotRateLimited:
+            await ctx.send(embed=self._rate_limit_embed())
             return
 
         champions = await self._load_champions()
