@@ -23,6 +23,7 @@ class BotConfig:
     id_canal_bots: int
     id_canal_logs: int | None
     required_role: str | None
+    riot_api_key: str | None
 
     @classmethod
     def load(cls, variables_path: str = "variables.json") -> BotConfig:
@@ -53,6 +54,7 @@ class BotConfig:
 
         raw_logs = os.getenv("DISCORD_ID_CANAL_LOGS")
         required_role = os.getenv("DISCORD_REQUIRED_ROLE") or None
+        riot_api_key = os.getenv("RIOT_API_KEY") or None
         return cls(
             token=token,
             prefix=prefix,
@@ -60,4 +62,5 @@ class BotConfig:
             id_canal_bots=int(id_canal_bots),
             id_canal_logs=int(raw_logs) if raw_logs else None,
             required_role=required_role,
+            riot_api_key=riot_api_key,
         )
