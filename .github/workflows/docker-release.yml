@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout server repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ env.SERVER_REPO }}
           token: ${{ secrets.SERVER_REPO_PAT }}
