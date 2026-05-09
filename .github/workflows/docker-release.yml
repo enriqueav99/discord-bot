@@ -87,7 +87,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout server repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ env.SERVER_REPO }}
           token: ${{ secrets.SERVER_REPO_PAT }}
@@ -131,7 +131,7 @@ jobs:
       - name: Create or update PR
         if: steps.bump.outputs.changed == 'true'
         id: cpr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           path: server
           token: ${{ secrets.SERVER_REPO_PAT }}

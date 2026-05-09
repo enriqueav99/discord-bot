@@ -23,6 +23,7 @@ Usa `/help` en Discord para ver todos los comandos disponibles.
 | 🔊 **Voz** | Text-to-speech (Google TTS), rickroll |
 | 🎲 **Diversión** | 8ball, dado, moneda, meme, rick |
 | 🎰 **Casino y Economía** | Ruleta europea, blackjack (botones interactivos), tragaperras 3×3, doble o nada. Apuestas múltiples con cantidad por apuesta (`negro 50 alto 30`). `/trabajo` cada 8h, atracos grupales (`/heist`), tienda con roles y títulos cosméticos. Fichas persistentes por servidor, recarga cada 6h, ranking con títulos. |
+| ⚔️ **League of Legends** | Perfil con rango SoloQ/Flex, última partida, top maestrías, rotación gratis, historial reciente, partida en directo (spectator), retos, equipo de Clash, comparativa de jugadores, estado del servidor EUW e info detallada de campeones. Vía Riot API + Data Dragon. |
 
 ---
 
@@ -46,6 +47,7 @@ Ver `.env.example` para todas las variables disponibles.
 | `DISCORD_ID_CANAL_LOGS` | ❌ | Canal de logs de moderación y eventos del bot |
 | `DISCORD_REQUIRED_ROLE` | ❌ | Nombre del rol de Discord necesario para usar el bot (admins siempre pasan) |
 | `BOT_DATA_DIR` | ❌ | Directorio donde se guardan `fichas.json` y otros datos persistentes (default `.`) |
+| `RIOT_API_KEY` | ❌ | Clave de la Riot API (necesaria para los comandos `/lol`). Si está vacía, los comandos avisan al usuario. |
 
 ---
 
@@ -82,6 +84,26 @@ Todos los comandos usan fichas virtuales persistentes por servidor. Cada usuario
 | `/fichas` | Consulta tu saldo actual. |
 | `/recargar` | Recibe 500 fichas gratis (cooldown 6h por servidor). |
 | `/ranking_fichas` | Top 10 del servidor. Los títulos activos se muestran junto al nombre. |
+
+---
+
+## League of Legends
+
+Comandos sobre la región **EUW** vía Riot API. Requieren `RIOT_API_KEY` en el `.env`. Acepta el formato `Nombre#TAG` (Riot ID).
+
+| Comando | Descripción |
+|---|---|
+| `/lol perfil <inv>` | Rango SoloQ y Flex, nivel y winrate. |
+| `/lol partida <inv>` | Última partida: campeón, KDA, CS, modo y duración. |
+| `/lol historial <inv> [n]` | Últimas N partidas (1–10, default 5) con KDA y W/L. |
+| `/lol enjuego <inv>` | Partida en directo: campeones, hechizos y equipos. |
+| `/lol maestria <inv>` | Top 5 campeones por puntos de maestría. |
+| `/lol challenges <inv>` | Puntos totales de retos y top 5 mejor percentil. |
+| `/lol clash <inv>` | Equipo de Clash si está inscrito. |
+| `/lol comparar <inv1> <inv2>` | Comparativa de rango SoloQ/Flex de dos jugadores. |
+| `/lol campeon <nombre>` | Pasiva, hechizos Q/W/E/R y stats base de un campeón (Data Dragon). |
+| `/lol rotacion` | Campeones gratis de la rotación semanal. |
+| `/lol status` | Incidencias y mantenimientos del servidor EUW. |
 
 ---
 
