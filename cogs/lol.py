@@ -103,26 +103,19 @@ class LoL(HttpMixin, commands.Cog):
     async def _resolve(self, invocador: str) -> tuple[dict, dict] | None:
         """Devuelve (summoner_data, account_data) o None si no se encuentra.
 
-        Acepta 'Nombre#TAG' (Riot ID) o nombre de invocador legacy.
+        Solo acepta 'Nombre#TAG' (Riot ID).
         """
-        if "#" in invocador:
-            game_name, tag_line = invocador.split("#", 1)
-            account = await self._riot_get(
-                f"{_BASE_REGION}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-            )
-            if not account:
-                return None
-            summoner = await self._riot_get(
-                f"{_BASE}/lol/summoner/v4/summoners/by-puuid/{account['puuid']}"
-            )
-        else:
-            summoner = await self._riot_get(
-                f"{_BASE}/lol/summoner/v4/summoners/by-name/{invocador}"
-            )
-            if not summoner:
-                return None
-            account = {"puuid": summoner["puuid"], "gameName": summoner["name"], "tagLine": "EUW"}
-
+        if "#" not in invocador:
+            return None
+        game_name, tag_line = invocador.split("#", 1)
+        account = await self._riot_get(
+            f"{_BASE_REGION}/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        )
+        if not account:
+            return None
+        summoner = await self._riot_get(
+            f"{_BASE}/lol/summoner/v4/summoners/by-puuid/{account['puuid']}"
+        )
         if not summoner:
             return None
         return summoner, account
@@ -148,7 +141,7 @@ class LoL(HttpMixin, commands.Cog):
 
     def _not_found_embed(self, invocador: str) -> discord.Embed:
         return discord.Embed(
-            description=f"❌ Invocador `{invocador}` no encontrado en EUW.\nUsa `Nombre#EUW` o el nombre de invocador exacto.",
+            description=f"❌ Invocador `{invocador}` no encontrado en EUW.\nUsa el formato `Nombre#TAG` (p. ej. `Faker#KR1`).",
             color=discord.Color.red(),
         )
 
@@ -170,7 +163,7 @@ class LoL(HttpMixin, commands.Cog):
             summoner, account = result
 
             entries = (
-                await self._riot_get(f"{_BASE}/lol/league/v4/entries/by-summoner/{summoner['id']}")
+                await self._riot_get(f"{_BASE}/lol/league/v4/entries/by-puuid/{summoner['puuid']}")
                 or []
             )
         except _RiotRateLimited:
@@ -179,7 +172,7 @@ class LoL(HttpMixin, commands.Cog):
 
         version = await self._get_ddragon_version()
         embed = discord.Embed(
-            title=f"⚔️ {account.get('gameName', summoner['name'])}",
+            title=f"⚔️ {account.get('gameName', invocador)}",
             color=0xC89B3C,
         )
         embed.set_thumbnail(
@@ -285,7 +278,7 @@ class LoL(HttpMixin, commands.Cog):
 
         version = await self._get_ddragon_version()
         embed = discord.Embed(
-            title=f"⚔️ {account.get('gameName', summoner['name'])} — {resultado}",
+            title=f"⚔️ {account.get('gameName', invocador)} — {resultado}",
             color=color,
         )
         embed.set_thumbnail(url=f"{_DDRAGON}/cdn/{version}/img/champion/{champion}.png")
@@ -318,7 +311,7 @@ class LoL(HttpMixin, commands.Cog):
 
             maestrias = await self._riot_get(
                 f"{_BASE}/lol/champion-mastery/v4/champion-masteries"
-                f"/by-summoner/{summoner['id']}/top?count=5"
+                f"/by-puuid/{summoner['puuid']}/top?count=5"
             )
             if not maestrias:
                 await ctx.send(
@@ -341,7 +334,7 @@ class LoL(HttpMixin, commands.Cog):
             lines.append(f"{medallas[i]} **{name}** — Nivel {nivel} · {pts} pts")
 
         embed = discord.Embed(
-            title=f"⚔️ {account.get('gameName', summoner['name'])} — Top maestría",
+            title=f"⚔️ {account.get('gameName', invocador)} — Top maestría",
             description="\n".join(lines),
             color=0xC89B3C,
         )
