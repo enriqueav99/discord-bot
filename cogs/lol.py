@@ -163,9 +163,7 @@ class LoL(HttpMixin, commands.Cog):
             summoner, account = result
 
             entries = (
-                await self._riot_get(
-                    f"{_BASE}/lol/league/v4/entries/by-puuid/{summoner['puuid']}"
-                )
+                await self._riot_get(f"{_BASE}/lol/league/v4/entries/by-puuid/{summoner['puuid']}")
                 or []
             )
         except _RiotRateLimited:
