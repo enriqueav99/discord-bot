@@ -1,7 +1,6 @@
 services:
   bot:
     # En desarrollo: build: .
-    # En la Raspberry: comenta la línea de build y usa la imagen publicada en GHCR.
     build: .
     # image: ghcr.io/enriqueav99/discord-bot:latest
     container_name: discord-bot
