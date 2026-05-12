@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import html
+import json
+import logging
+import os
 import random
 import unicodedata
 from collections import defaultdict
 from io import BytesIO
+from pathlib import Path
 
 import aiohttp
 import discord
@@ -16,8 +20,13 @@ from PIL import Image
 
 from src.http import HttpMixin
 
+log = logging.getLogger("discord.games")
+
 POKEAPI = "https://pokeapi.co/api/v2"
 MAX_POKEMON_ID = 493  # Gen 1–4
+
+_DATA_DIR = Path(os.getenv("BOT_DATA_DIR", "."))
+_POKEMON_RANKING_FILE = _DATA_DIR / "pokemon_ranking.json"
 
 TYPE_COLORS = {
     "normal": 0xA8A77A,
@@ -61,14 +70,50 @@ def obtener_silueta(imagen_bytes: bytes) -> bytes:
     return buf.getvalue()
 
 
+def _load_pokemon_ranking() -> dict:
+    if _POKEMON_RANKING_FILE.exists():
+        try:
+            return json.loads(_POKEMON_RANKING_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            log.warning("No se pudo leer %s, empezando vacío", _POKEMON_RANKING_FILE)
+    return {}
+
+
+def _save_pokemon_ranking(data: dict) -> None:
+    try:
+        _POKEMON_RANKING_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        log.error("No se pudo guardar pokemon_ranking.json", exc_info=True)
+
+
 class Games(HttpMixin, commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        # ranking[guild_id][user_id] = puntos
+        # ranking[guild_id][user_id] = puntos — cargado desde disco
         self.ranking: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
         # Caché en memoria de datos de pokémon ya consultados (1025 × ~5KB = ~5MB tope).
         self._pokemon_cache: dict[int, tuple[dict, dict, bytes]] = {}
         self._session: aiohttp.ClientSession | None = None
+        # Cargar ranking desde disco
+        self._load_ranking_from_disk()
+
+    def _load_ranking_from_disk(self) -> None:
+        """Carga el ranking de pokemon desde pokemon_ranking.json."""
+        data = _load_pokemon_ranking()
+        for guild_id_str, scores in data.items():
+            guild_id = int(guild_id_str)
+            for user_id_str, puntos in scores.items():
+                user_id = int(user_id_str)
+                self.ranking[guild_id][user_id] = puntos
+        if data:
+            log.info("Ranking de pokemon cargado desde disco: %d servidores", len(data))
+
+    def _save_ranking_to_disk(self) -> None:
+        """Guarda el ranking actual a pokemon_ranking.json."""
+        data = {}
+        for guild_id, scores in self.ranking.items():
+            data[str(guild_id)] = {str(uid): pts for uid, pts in scores.items()}
+        _save_pokemon_ranking(data)
 
     async def _fetch_pokemon(self, pokemon_id: int) -> tuple[dict, dict, bytes] | None:
         """Devuelve (pokemon, species, sprite_bytes). Cachea para no machacar PokeAPI."""
@@ -189,6 +234,7 @@ class Games(HttpMixin, commands.Cog):
             if normalizar(msg.content) in nombres_norm:
                 self.ranking[ctx.guild.id][msg.author.id] += 1
                 puntos = self.ranking[ctx.guild.id][msg.author.id]
+                self._save_ranking_to_disk()
                 reveal = discord.Embed(
                     title=f"✅ ¡{nombre_es}!",
                     description=f"{msg.author.mention} acertó. Lleva **{puntos}** puntos en este servidor.",
