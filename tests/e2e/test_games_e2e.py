@@ -38,6 +38,15 @@ SPECIES_FAKE = {
 }
 
 
+@pytest.fixture
+def clean_ranking(harness):
+    """Limpia el ranking antes y después de cada test."""
+    games = harness.bot.get_cog("Games")
+    games.ranking.clear()
+    yield
+    games.ranking.clear()
+
+
 async def test_adivina_acierto(harness, monkeypatch):
     """Pre-pobla la cache de pokémon para evitar HTTP, parchea wait_for para
     simular que el usuario contesta correctamente, y verifica que el bot
@@ -73,12 +82,12 @@ async def test_adivina_acierto(harness, monkeypatch):
     assert any("Pikachu" in (e.title or "") for e in embeds)
 
 
-async def test_pokeranking_vacio(harness):
+async def test_pokeranking_vacio(harness, clean_ranking):
     result = await harness.invoke("pokeranking")
     assert "Todavía nadie" in result.all_text
 
 
-async def test_pokeranking_con_aciertos(harness):
+async def test_pokeranking_con_aciertos(harness, clean_ranking):
     games = harness.bot.get_cog("Games")
     games.ranking[100][111] = 5
     games.ranking[100][222] = 3
