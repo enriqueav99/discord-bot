@@ -179,7 +179,7 @@ class Games(HttpMixin, commands.Cog):
         return gen_url.replace("generation-", "Gen ").upper() or "?"
 
     @commands.hybrid_command(name="adivina", description="Adivina el Pokémon de la silueta")
-    @commands.cooldown(1, 30, commands.BucketType.channel)
+    @commands.cooldown(1, 3, commands.BucketType.channel)
     async def adivina(self, ctx: commands.Context):
         if ctx.interaction:
             await ctx.defer()
