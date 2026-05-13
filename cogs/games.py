@@ -23,7 +23,7 @@ from src.http import HttpMixin
 
 log = logging.getLogger("discord.games")
 
-POKEMON_REWARD = 25  # fichas por acertar un Pokémon
+POKEMON_REWARD = 10  # fichas por acertar un Pokémon
 
 POKEAPI = "https://pokeapi.co/api/v2"
 MAX_POKEMON_ID = 493  # Gen 1–4
