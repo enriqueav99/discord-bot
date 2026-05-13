@@ -18,9 +18,12 @@ import discord
 from discord.ext import commands
 from PIL import Image
 
+from src.fichas import get_manager
 from src.http import HttpMixin
 
 log = logging.getLogger("discord.games")
+
+POKEMON_REWARD = 25  # fichas por acertar un Pokémon
 
 POKEAPI = "https://pokeapi.co/api/v2"
 MAX_POKEMON_ID = 493  # Gen 1–4
@@ -178,7 +181,10 @@ class Games(HttpMixin, commands.Cog):
         gen_url = species.get("generation", {}).get("name", "")
         return gen_url.replace("generation-", "Gen ").upper() or "?"
 
-    @commands.hybrid_command(name="adivina", description="Adivina el Pokémon de la silueta")
+    @commands.hybrid_command(
+        name="adivina",
+        description=f"Adivina el Pokémon de la silueta. Acertar da {POKEMON_REWARD} 🪙",
+    )
     @commands.cooldown(1, 3, commands.BucketType.channel)
     async def adivina(self, ctx: commands.Context):
         if ctx.interaction:
@@ -235,9 +241,14 @@ class Games(HttpMixin, commands.Cog):
                 self.ranking[ctx.guild.id][msg.author.id] += 1
                 puntos = self.ranking[ctx.guild.id][msg.author.id]
                 self._save_ranking_to_disk()
+                fichas = get_manager().ajustar(ctx.guild.id, msg.author.id, POKEMON_REWARD)
                 reveal = discord.Embed(
                     title=f"✅ ¡{nombre_es}!",
-                    description=f"{msg.author.mention} acertó. Lleva **{puntos}** puntos en este servidor.",
+                    description=(
+                        f"{msg.author.mention} acertó. "
+                        f"Lleva **{puntos}** puntos en este servidor. "
+                        f"+{POKEMON_REWARD} 🪙 (saldo: {fichas} 🪙)"
+                    ),
                     color=self._color_por_tipo(pokemon),
                 )
                 if artwork_url:

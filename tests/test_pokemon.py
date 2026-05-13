@@ -1,6 +1,10 @@
 from PIL import Image
 
-from cogs.games import normalizar, obtener_silueta
+from cogs.games import POKEMON_REWARD, normalizar, obtener_silueta
+
+
+def test_pokemon_reward_positivo():
+    assert POKEMON_REWARD > 0
 
 
 def test_normalizar_quita_acentos():
