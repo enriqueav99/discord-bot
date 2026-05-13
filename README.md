@@ -16,7 +16,7 @@ Usa `/help` en Discord para ver todos los comandos disponibles.
 | | |
 |---|---|
 | 🎵 **Música** | Cola por servidor, autoplay, `playnext`, shuffle, loop, letras en tiempo real, barra de progreso. Se desconecta solo tras 15 min de inactividad. |
-| 🎮 **Juegos** | Adivina el Pokémon por silueta gen 1–4 (con ranking), trivia |
+| 🎮 **Juegos** | Adivina el Pokémon por silueta gen 1–4 (con ranking y recompensa de 10 🪙), trivia |
 | 🎂 **Cumpleaños** | Registro por usuario y anuncio automático diario |
 | 🔨 **Moderación** | Kick, ban, timeout, clear con logs de auditoría. Warns por usuario (`/warn`, `/infractions`, `/clearwarns`). Automod configurable: palabras prohibidas y límite de menciones. Logging extendido de ediciones, borrados, cambios de nombre/rol, canales e invitaciones. |
 | 🛠️ **Utilidad** | Recordatorios (`10m`, `1h30m`, `2d`), polls con reacciones, info de usuario/servidor |
@@ -51,9 +51,19 @@ Ver `.env.example` para todas las variables disponibles.
 
 ---
 
+## Juegos
+
+| Comando | Descripción |
+|---|---|
+| `/adivina` | Adivina el Pokémon por la silueta (gen 1–4). Tienes 30s y pista a los 15s. Acertar da **10 🪙** y suma un punto al ranking. |
+| `/pokeranking` | Top 10 de aciertos de `/adivina` en el servidor. |
+| `/trivia` | Pregunta de trivia de opción múltiple. 20s para responder. |
+
+---
+
 ## Casino y Economía
 
-Todos los comandos usan fichas virtuales persistentes por servidor. Cada usuario empieza con **1000 fichas** y puede recargar 500 gratis cada 6h con `/recargar`.
+Todos los comandos usan fichas virtuales persistentes por servidor. Cada usuario empieza con **1000 fichas** y puede recargar 500 gratis cada 6h con `/recargar`. También se pueden ganar jugando a `/adivina` (**10 🪙** por acierto).
 
 ### Juegos
 

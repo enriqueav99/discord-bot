@@ -1,6 +1,7 @@
 """E2E: cog Games con HTTP mockeado para no pegar PokeAPI."""
 
 from io import BytesIO
+from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image
@@ -80,6 +81,43 @@ async def test_adivina_acierto(harness, monkeypatch):
     assert ctx.send.await_count >= 2
     embeds = [c.kwargs.get("embed") for c in ctx.send.call_args_list if c.kwargs.get("embed")]
     assert any("Pikachu" in (e.title or "") for e in embeds)
+
+
+async def test_adivina_acierto_da_fichas(harness, monkeypatch):
+    """Acertar el Pokémon llama a ajustar con POKEMON_REWARD y lo muestra en el embed."""
+    import cogs.games as games_mod
+
+    monkeypatch.setattr(games_mod.random, "randint", lambda a, b: 25)
+
+    games = harness.bot.get_cog("Games")
+    games._pokemon_cache[25] = (POKEMON_FAKE, SPECIES_FAKE, _png_bytes())
+
+    cmd = harness.bot.get_command("adivina")
+    ctx = harness._make_ctx()
+
+    async def mock_wait_for(event, *, check, timeout):
+        m = type("M", (), {})()
+        m.author = ctx.author
+        m.author.bot = False
+        m.channel = ctx.channel
+        m.content = "Pikachu"
+        return m
+
+    harness.bot.wait_for = mock_wait_for
+
+    mock_manager = MagicMock()
+    mock_manager.ajustar.return_value = 1025
+
+    with patch("cogs.games.get_manager", return_value=mock_manager):
+        await cmd.callback(cmd.cog, ctx)
+
+    mock_manager.ajustar.assert_called_once_with(
+        ctx.guild.id, ctx.author.id, games_mod.POKEMON_REWARD
+    )
+    embeds = [c.kwargs.get("embed") for c in ctx.send.call_args_list if c.kwargs.get("embed")]
+    reveal = next(e for e in embeds if e.title and "Pikachu" in e.title)
+    assert f"+{games_mod.POKEMON_REWARD}" in reveal.description
+    assert "🪙" in reveal.description
 
 
 async def test_pokeranking_vacio(harness, clean_ranking):
